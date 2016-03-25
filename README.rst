@@ -1,43 +1,46 @@
 lizard-connector
-==========================================
+================
 
 Introduction
+------------
 
-Usage, etc.
+Connector to Lizard api (e.g. https://demo.lizard.net/api/v2) for python.
+
+Includes:
+- Endpoints (Lizard api endoints, e.g. TimeseriesEndpoint)
+- Connector (http handling)
+- queryfunctions for special cases such as geographical queries and time
+related queries other queries can be input as a dictionary
+- parserfunctions to parse the json obtained from Endpoint queries
 
 
-Post-nensskel setup TODO
-------------------------
+Example usage
+-------------
 
-Here are some instructions on what to do after you've created the project with
-nensskel.
+Use one endpoints https://demo.lizard.net/api/v2 in Python with the Endpoint
+ class:
 
-- Fill in a short description on https://github.com/lizardsystem/lizard-connector or
-  https://github.com/nens/lizard-connector if you haven't done so already.
+    import lizard_connector
+    import datetime
 
-- Use the same description in the ``setup.py``'s "description" field.
+    timeseries = lizard_connector.connector.Timeseries(
+        username="example.username"
+        password="example_password"
+    )
 
-- Fill in your username and email address in the ``setup.py``, see the
-  ``TODO`` fields. If you use it, also check the ``bower.json``.
+    endpoint = 'timeseries'
+    south_west = [48.0, -6.8]
+    north_east = [56.2, 18.9]
 
-- Also add your name to ``CREDITS.rst``. It is open source software, so you
-  should claim credit!
+    organisation_id = 'example_organisation_uuid'
 
-- Check https://github.com/nens/lizard-connector/settings/collaboration if the team
-  "Nelen & Schuurmans" has access.
+    start = datetime.datetime(1970, 1, 1)
+    end = datetime.datetime.now()
 
-- Add a new jenkins job at
-  http://buildbot.lizardsystem.nl/jenkins/view/djangoapps/newJob or
-  http://buildbot.lizardsystem.nl/jenkins/view/libraries/newJob . Job name
-  should be "lizard-connector", make the project a copy of the existing "lizard-wms"
-  project (for django apps) or "nensskel" (for libraries). On the next page,
-  change the "github project" to ``https://github.com/nens/lizard-connector/`` and
-  "repository url" fields to ``git@github.com:nens/lizard-connector.git`` (you might
-  need to replace "nens" with "lizardsystem"). The rest of the settings should
-  be OK.
+    relevant_queries = [
+        lizard_connector.queries.in_bbox(south_west, north_east, endpoint),
+        organisation(organisation_id, endpoint),
+        datetime_limits(start, end)
+    ]
 
-- The project is prepared to be translated with Lizard's
-  `Transifex <http://translations.lizard.net/>`_ server. For details about
-  pushing translation files to and fetching translation files from the
-  Transifex server, see the ``nens/translations`` `documentation
-  <https://github.com/nens/translations/blob/master/README.rst>`_.
+    results = timeseries.download(relevant_queries)
