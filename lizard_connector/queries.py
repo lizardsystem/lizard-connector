@@ -89,6 +89,7 @@ def in_bbox(south_west, north_east, endpoint=None):
     geometry.
 
     Args:
+        endpoint (str): endpoint name as it is available in the Lizard-api
         south_west (list, tuple): coordinates of the most south western
                                   point of the bounding box of the form
                                   (lat, lon).

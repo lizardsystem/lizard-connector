@@ -207,3 +207,21 @@ class Endpoint(Connector):
         """
         return bool(self.next_url)
 
+
+class Timeseries(Endpoint):
+    endpoint = 'timeseries'
+
+
+class Rasters(Endpoint):
+    endpoint = 'rasters'
+
+
+class Events(Endpoint):
+    endpoint = 'events'
+
+
+# TODO: ba
+# class Assets(Endpoint):
+#     endpoint = ''
+
+
