@@ -7,7 +7,7 @@
 import datetime
 
 project = "lizard_connector"
-author = ""
+author = "roel.vandenberg@nelen-schuurmans.nl"
 version = ""
 release = ""
 this_year = datetime.date.today().year
