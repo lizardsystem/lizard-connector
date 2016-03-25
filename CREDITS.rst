@@ -1,4 +1,4 @@
 Credits
 =======
 
-- TODO started this library
+- roel.vandenberg@nelen-schuurmans.nl started this library

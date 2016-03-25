@@ -1,5 +1,5 @@
 import unittest
-from lizard_connector.query import *
+from lizard_connector.queries import *
 
 
 class QueryDictionaryTestCase(unittest.TestCase):

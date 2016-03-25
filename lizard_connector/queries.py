@@ -1,3 +1,4 @@
+# coding=utf-8
 import datetime
 import urllib.parse
 
@@ -9,13 +10,23 @@ class LizardApiImproperQueryError(Exception):
 
 
 class QueryDictionary(dict):
+    """
+    Copy of the dict builtin with a slight change to the update method.
+    """
 
     def update(self, E=None, *queries, **f):
         """
+        Dict update alike, includes updating with dicts in an iterable.
+
         D.update([E, ]**F) -> None.  Update D from dict/iterable E and F.
         If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k]
         If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v
         In either case, this is followed by: for k in F:  D[k] = F[k]
+
+        Args:
+            E (dict): other dictionary to update with.
+            *queries (iterable): iterable containing dicts to update with.
+            **f (dict): key, value pairs to update with.
         """
         for k, v in f.items():
             self[k] = v
@@ -36,7 +47,7 @@ class QueryDictionary(dict):
 
 def commaify(*args):
     """
-    :return: a comma-seperated string of the given arguments
+    Returns a comma-seperated string of the given arguments (str).
     """
     return ','.join(str(x) for x in args)
 
@@ -44,11 +55,17 @@ def commaify(*args):
 def bbox(south_west, north_east):
     """
     Creates a bounding box in Well-known text (WKT).
-    :param south_west: list or tuple with coordinates of the most south western
-                       point of the bounding box of the form (lat, lon)
-    :param north_east: list or tuple with coordinates of the most north eastern
-                       point of the bounding box of the form (lat, lon)
-    :return: bounding box polygon in Well-known text (WKT)
+
+    Args:
+        south_west (list, tuple): coordinates of the most south western
+                                  point of the bounding box of the form
+                                  (lat, lon).
+        north_east (list, tuple): coordinates of the most north eastern
+                                  point of the bounding box of the form
+                                  (lat, lon).
+
+    Returns:
+        bounding box polygon in Well-known text (WKT).
     """
     min_lat, min_lon = south_west
     max_lat, max_lon = north_east
@@ -66,14 +83,21 @@ def bbox(south_west, north_east):
 def in_bbox(south_west, north_east, endpoint=None):
     """
     Find all locations within a certain bounding box.
+
     returns records within bounding box using Bounding Box format (min Lon,
     min Lat, max Lon, max Lat). Also returns features with overlapping
     geometry.
-    :param south_west: list or tuple with coordinates of the most south western
-                       point of the bounding box of the form (lat, lon)
-    :param north_east: list or tuple with coordinates of the most north eastern
-                       point of the bounding box of the form (lat, lon)
-    :return: a query dictionary.
+
+    Args:
+        south_west (list, tuple): coordinates of the most south western
+                                  point of the bounding box of the form
+                                  (lat, lon).
+        north_east (list, tuple): coordinates of the most north eastern
+                                  point of the bounding box of the form
+                                  (lat, lon).
+
+    Returns:
+        a query dictionary.
     """
     query = "geom_within" if endpoint == 'timeseries' else "in_bbox"
     return QueryDictionary({query: bbox(south_west, north_east)})
@@ -82,11 +106,16 @@ def in_bbox(south_west, north_east, endpoint=None):
 def distance_to_point(distance, lat, lon):
     """
     Query for records with distance meters from a given point.
+
     Distance in meters is converted to WGS84 degrees and thus an approximation.
-    :param distance: meters from point
-    :param lon: longtitude of point
-    :param lat: latitude of point
-    :return: a query dictionary.
+
+    Args:
+        distance (int): meters from point
+        lon (int): longtitude of point
+        lat (int): latitude of point
+
+    Returns:
+        a query dictionary.
     """
     coords = commaify(lon, lat)
     return QueryDictionary(distance=distance, point=coords)
@@ -95,9 +124,13 @@ def distance_to_point(distance, lat, lon):
 def datetime_limits(start=None, end=None):
     """
     Query for date time limits (start, end).
-    :param start: start in python datetime.datetime format.
-    :param end: end in python datetime.datetime format.
-    :return: a query dictionary.
+
+    Args:
+        start (datetime.datetime): start date time.
+        end (datetime.datetime): end date time.
+
+    Returns:
+        a query dictionary.
     """
     if not end:
         end = datetime.datetime.now()
