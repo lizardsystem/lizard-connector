@@ -1,7 +1,7 @@
 import unittest
 import unittest.mock
+
 from lizard_connector.connector import *
-import json
 
 
 class MockHeaders:
@@ -26,7 +26,7 @@ class MockUrlopen:
             'count': 10,
             'next': 'next_url',
             'results': [{
-                    'uuid':1
+                    'uuid': 1
                 }]
         }).encode('utf-8')
 
@@ -68,7 +68,7 @@ class ConnectorTestCase(unittest.TestCase):
 
     def test_post(self):
         self.connector_test(self.connector.post, 'http://test.nl', '1',
-                          {'data': 1})
+                            {'data': 1})
         self.mock_urlopen.assert_called_with('http://test.nl', {})
 
     def test_request(self):
@@ -102,16 +102,16 @@ class EndpointTestCase(unittest.TestCase):
     def setUp(self):
         self.connector_get = unittest.mock.Mock(return_value=[{'uuid': 1}])
         self.connector_post = unittest.mock.Mock(return_value=None)
-        self.endpoint = self.connector_test(Endpoint,
-                                          base='http://test.nl')
+        self.endpoint = self.connector_test(Endpoint, base='http://test.nl')
         self.endpoint.count = 3
         self.endpoint.next_url = 'test'
 
     def connector_test(self, connector_method, *args, **kwargs):
         with unittest.mock.patch('lizard_connector.connector.Connector.get',
-                                 self.connector_get) as fg, \
-                unittest.mock.patch('lizard_connector.connector.Connector.post',
-                                    self.connector_post) as fp:
+                                 self.connector_get), \
+                unittest.mock.patch(
+                    'lizard_connector.connector.Connector.post',
+                    self.connector_post):
             return connector_method(*args, **kwargs)
 
     def test_get(self):
@@ -126,7 +126,7 @@ class EndpointTestCase(unittest.TestCase):
     def test_post(self):
         self.connector_test(self.endpoint.upload, uuid=1, data={"a": 1})
         self.connector_post.assert_called_with('http://test.nl/api/v2/', 1,
-                                             {"a": 1})
+                                               {"a": 1})
 
     def test_paginated(self):
         self.assertEqual(self.endpoint.paginated, True)

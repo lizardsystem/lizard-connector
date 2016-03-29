@@ -1,4 +1,5 @@
 import unittest
+
 from lizard_connector.queries import *
 
 

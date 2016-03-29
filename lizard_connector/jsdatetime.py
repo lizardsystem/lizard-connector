@@ -1,4 +1,3 @@
-__author__ = 'roel.vandenberg@nelen-schuurmans.nl'
 """
 Collection of functions that transform javascript date objects into python
 datetime objects and vice versa.
