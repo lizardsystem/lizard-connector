@@ -2,7 +2,7 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.1 (unreleased)
+0.1 (2016-03-29)
 ----------------
 
 - Basic setup
