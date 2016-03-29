@@ -220,8 +220,6 @@ class Events(Endpoint):
     endpoint = 'events'
 
 
-# TODO: ba
+# TODO:
 # class Assets(Endpoint):
 #     endpoint = ''
-
-

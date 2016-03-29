@@ -18,7 +18,7 @@ Example usage
 -------------
 
 Use one endpoints https://demo.lizard.net/api/v2 in Python with the Endpoint
- class:
+class:
 
     import lizard_connector
     import datetime
