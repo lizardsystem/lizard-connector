@@ -2,7 +2,7 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.2 (unreleased)
+0.2 (2016-05-04)
 ----------------
 
 - Added Datatype classes.
