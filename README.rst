@@ -7,7 +7,8 @@ Introduction
 Connector to Lizard api (e.g. https://demo.lizard.net/api/v2) for python.
 
 Includes:
-- Endpoints (Lizard api endoints, e.g. TimeseriesEndpoint)
+- Datatypes (experimental / alpha)
+- Endpoint (Easy access to Lizard api endpoints)
 - Connector (http handling)
 - queryfunctions for special cases such as geographical queries and time
 related queries other queries can be input as a dictionary
@@ -23,9 +24,10 @@ class::
     import lizard_connector
     import datetime
 
-    timeseries = lizard_connector.connector.Timeseries(
+    timeseries = lizard_connector.connector.Endpoint(
         username="example.username"
         password="example_password"
+        endpoint = 'timeseries'
     )
 
     endpoint = 'timeseries'

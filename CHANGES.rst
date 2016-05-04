@@ -5,8 +5,8 @@ Changelog of lizard-connector
 0.2 (unreleased)
 ----------------
 
-- Nothing changed yet.
-
+- Added Datatype classes.
+- Renamed Endpoint get and post to download and upload.
 
 0.1 (2016-03-29)
 ----------------
