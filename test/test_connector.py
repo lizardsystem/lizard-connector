@@ -74,7 +74,7 @@ class ConnectorTestCase(unittest.TestCase):
         json_ = self.connector_test(
             self.connector.perform_request, 'http://test.nl')
         self.assertDictEqual(
-            json.loads(json_), {'count': 10, 'next': 'next_url', 'results': [{
+            json_, {'count': 10, 'next': 'next_url', 'results': [{
                 'uuid': 1}]}
         )
 
@@ -161,7 +161,11 @@ class DataTypeTestCase(unittest.TestCase):
         self.assertRaises(NotImplementedError, testerror)
 
     def test_list_endpoints(self):
-        self.assertEqual(self.datatype2.list_endpoints(), ['testendpoint'])
+        self.assertEqual(self.datatype2.endpoints(), ['testendpoint'])
+
+    def test_endpoints(self):
+        self.assertEqual(self.datatype2.endpoint_queries('testendpoint'),
+                         ['test'])
 
     def test_queries(self):
         self.assertEqual(
@@ -176,6 +180,17 @@ class DataTypeTestCase(unittest.TestCase):
 
 # TODO: More tests are required, but since the datatypes are experimental /
 # TODO: still a work in progress further testing has been postponed.
+
+
+class TimeseriesTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.ts = lizard_connector.connector.Timeseries()
+
+    def test_queries(self):
+        test_result = self.ts.queries['timeseries']['organisation']('test')
+        expected_result = {'location__organisation__unique_id': 'test'}
+        self.assertDictEqual(test_result, expected_result)
 
 
 if __name__ == '__main__':

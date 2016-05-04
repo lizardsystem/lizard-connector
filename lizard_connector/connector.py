@@ -229,9 +229,13 @@ class Datatype(object):
         """
         raise NotImplementedError
 
-    def list_endpoints(self):
+    def endpoints(self):
         """Lists all available endpoints for this datatype."""
         return list(self.queries.keys())
+
+    def endpoint_queries(self, endpoint):
+        """Lists all available queries for an endpoint of this datatype."""
+        return list(self.queries[endpoint].keys())
 
     def download(self, endpoint, *querydicts, **queries):
         """Downloads a json as a dict from an endpoint."""
