@@ -54,6 +54,15 @@ def commaify(*args):
     return ','.join(str(x) for x in args)
 
 
+def wkt_point(lon, lat):
+    return ''.join(('POINT (', str(lon), ' ', str(lat), ')'))
+
+
+def wkt_polygon(polygon_coordinates):
+    points = [' '.join([str(x), str(y)]) for x, y in polygon_coordinates]
+    return 'POLYGON ((' + ', '.join(points) + '))'
+
+
 def bbox(south_west, north_east):
     """
     Creates a bounding box in Well-known text (WKT).
@@ -78,8 +87,7 @@ def bbox(south_west, north_east):
             [max_lon, min_lat],
             [min_lon, min_lat],
         ]
-    points = [' '.join([str(x), str(y)]) for x, y in polygon_coordinates]
-    return 'POLYGON ((' + ', '.join(points) + '))'
+    return wkt_polygon(polygon_coordinates)
 
 
 def in_bbox(south_west, north_east, endpoint=None):

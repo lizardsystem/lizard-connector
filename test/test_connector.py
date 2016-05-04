@@ -67,8 +67,7 @@ class ConnectorTestCase(unittest.TestCase):
         self.mock_urlopen.assert_called_with('http://test.nl', {})
 
     def test_post(self):
-        self.connector_test(self.connector.post, 'http://test.nl', '1',
-                            {'data': 1})
+        self.connector_test(self.connector.post, 'http://test.nl', {'data': 1})
         self.mock_urlopen.assert_called_with('http://test.nl', {})
 
     def test_request(self):
@@ -102,7 +101,8 @@ class EndpointTestCase(unittest.TestCase):
     def setUp(self):
         self.connector_get = unittest.mock.Mock(return_value=[{'uuid': 1}])
         self.connector_post = unittest.mock.Mock(return_value=None)
-        self.endpoint = self.connector_test(Endpoint, base='http://test.nl')
+        self.endpoint = self.connector_test(Endpoint, base='http://test.nl',
+                                            endpoint='test')
         self.endpoint.count = 3
         self.endpoint.next_url = 'test'
 
@@ -118,21 +118,64 @@ class EndpointTestCase(unittest.TestCase):
         self.connector_test(self.endpoint.download, q1=2)
         try:
             self.connector_get.assert_called_with(
-                'http://test.nl/api/v2/?q1=2&page_size=1000')
+                'http://test.nl/api/v2/test/?q1=2&page_size=1000')
         except AssertionError:
             self.connector_get.assert_called_with(
-                'http://test.nl/api/v2/?page_size=1000&q1=2')
+                'http://test.nl/api/v2/test/?page_size=1000&q1=2')
 
     def test_post(self):
-        self.connector_test(self.endpoint.upload, uuid=1, data={"a": 1})
-        self.connector_post.assert_called_with('http://test.nl/api/v2/', 1,
-                                               {"a": 1})
+        self.connector_test(self.endpoint.upload, uuid="1", data={"a": 1})
+        self.connector_post.assert_called_with(
+            'http://test.nl/api/v2/test/data', {"a": 1})
+        self.connector_test(self.endpoint.upload, data={"a": 1})
+        self.connector_post.assert_called_with(
+            'http://test.nl/api/v2/test/', {"a": 1})
+
 
     def test_paginated(self):
         self.assertEqual(self.endpoint.paginated, True)
 
     def test_count(self):
         self.assertEqual(self.endpoint.count, 3)
+
+
+class DataTypeTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.datatype = Datatype()
+        class TestDatatype(Datatype):
+            queries = {
+                "testendpoint": {
+                    "test": self.dummy
+                }
+            }
+        self.datatype2 = TestDatatype()
+        self.mock_urlopen = MockUrlopen()
+
+    def dummy(self):
+        return "test"
+
+    def test_not_implemented(self):
+        def testerror():
+            self.datatype.queries
+        self.assertRaises(NotImplementedError, testerror)
+
+    def test_list_endpoints(self):
+        self.assertEqual(self.datatype2.list_endpoints(), ['testendpoint'])
+
+    def test_queries(self):
+        self.assertEqual(
+            self.datatype2.queries['testendpoint']['test'](), 'test')
+
+    def test_download(self):
+        with unittest.mock.patch('urllib.request.urlopen', self.mock_urlopen) \
+                as mock_response:
+            self.assertDictEqual((self.datatype2.download('testendpoint'))[0],
+                              {'uuid': 1})
+
+
+# TODO: More tests are required, but since the datatypes are experimental /
+# TODO: still a work in progress further testing has been postponed.
 
 
 if __name__ == '__main__':
