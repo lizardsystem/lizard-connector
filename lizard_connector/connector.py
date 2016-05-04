@@ -13,8 +13,9 @@ related queries other queries can be input as a dictionary
 import json
 import urllib.request
 import urllib.parse
+import functools
 
-from lizard_connector.queries import QueryDictionary
+import lizard_connector.queries
 
 
 class LizardApiTooManyResults(Exception):
@@ -51,9 +52,9 @@ class Connector(object):
             url (str): Lizard-api valid url.
 
         Returns:
-            A dictionary of the 'results'-part of the api-response.
+            A list of dictionaries of the 'results'-part of the api-response.
         """
-        json_ = json.loads(self.perform_request(url))
+        json_ = self.perform_request(url)
         self.count = json_.get('count')
         self.next_url = json_.get('next')
         json_ = json_.get('results', json_)
@@ -69,7 +70,7 @@ class Connector(object):
                 json_.update(extra_json.get('results', extra_json))
         return json_
 
-    def post(self, url, uuid, data):
+    def post(self, url, data):
         """
         POST data to the api.
 
@@ -79,9 +80,7 @@ class Connector(object):
                         data to.
             data (dict): Dictionary with the data to post to the api
         """
-        post_url = urllib.parse.urljoin(urllib.parse.urljoin(url, str(uuid)),
-                                        'data')
-        self.perform_request(post_url, data=json.dumps(data))
+        return self.perform_request(url, data)
 
     def perform_request(self, url, data=None):
         """
@@ -99,16 +98,16 @@ class Connector(object):
             the JSON from the response when no data is sent, else None.
         """
         if data:
-            request_obj = urllib.request.Request(url, headers=self.header,
-                                                 data=data)
+            request_obj = urllib.request.Request(
+                url,
+                headers=self.header,
+                data=json.dumps(data).encode('utf-8'),
+                method="POST")
         else:
             request_obj = urllib.request.Request(url, headers=self.header)
         with urllib.request.urlopen(request_obj) as resp:
-            if not data:
-                encoding = resp.headers.get_content_charset()
-                encoding = encoding if encoding else 'UTF-8'
-                content = resp.read().decode(encoding)
-                return content
+            content = resp.read().decode('UTF-8')
+            return json.loads(content)
 
     def next_page(self):
         """
@@ -149,9 +148,8 @@ class Connector(object):
 
 class Endpoint(Connector):
     max_results = 1000
-    endpoint = ""
 
-    def __init__(self, base, **kwargs):
+    def __init__(self, endpoint, base="https://demo.lizard.net", **kwargs):
         """
         Args:
             base (str): lizard-nxt url.
@@ -165,10 +163,11 @@ class Endpoint(Connector):
                               page is obtained on get.
         """
         super().__init__(**kwargs)
+        self.endpoint = endpoint
         base = base.strip(r'/')
         if not base.startswith('http'):
             base = 'https://' + base
-        base = urllib.parse.urljoin(base, 'api/v2')
+        base = urllib.parse.urljoin(base, 'api/v2') + "/"
         self.base_url = urllib.parse.urljoin(base, self.endpoint) + "/"
 
     def download(self, *querydicts, **queries):
@@ -183,13 +182,14 @@ class Endpoint(Connector):
                                    used as queries.
             queries (dict): all keyword arguments are used as queries.
         """
-        q = QueryDictionary(page_size=self.max_results)
+        q = lizard_connector.queries.QueryDictionary(page_size=self.max_results
+                                                     )
         q.update(*querydicts, **queries)
         query = "?" + urllib.parse.urlencode(q)
         url = urllib.parse.urljoin(self.base_url, query)
-        return super().get(url)
+        return self.get(url)
 
-    def upload(self, uuid, data):
+    def upload(self, data, uuid=None):
         """
         Upload data to the api at this endpoint.
 
@@ -198,7 +198,13 @@ class Endpoint(Connector):
                         data to.
             data (dict): Dictionary with the data to post to the api
         """
-        super().post(self.base_url, uuid, data)
+        if uuid:
+            post_url = urllib.parse.urljoin(
+                urllib.parse.urljoin(self.base_url, uuid),
+                'data')
+        else:
+            post_url = self.base_url
+        return self.post(post_url, data)
 
     @property
     def paginated(self):
@@ -208,18 +214,94 @@ class Endpoint(Connector):
         return bool(self.next_url)
 
 
-class Timeseries(Endpoint):
-    endpoint = 'timeseries'
+class Datatype(object):
+    """
+    Experimental class that forms the building block for data types.
+
+    Each data type contains a list of queries for each relevant lizard-api
+    endpoint. These are the only viable queries for each endpoint.
+    """
+
+    @property
+    def queries(self):
+        """
+        This property needs to be implemented for the class to function.
+        """
+        raise NotImplementedError
+
+    def endpoints(self):
+        """Lists all available endpoints for this datatype."""
+        return list(self.queries.keys())
+
+    def endpoint_queries(self, endpoint):
+        """Lists all available queries for an endpoint of this datatype."""
+        return list(self.queries[endpoint].keys())
+
+    def download(self, endpoint, *querydicts, **queries):
+        """Downloads a json as a dict from an endpoint."""
+        endpoint_ = Endpoint(endpoint)
+        return endpoint_.download(*querydicts, **queries)
 
 
-class Rasters(Endpoint):
-    endpoint = 'rasters'
+class Timeseries(Datatype):
+    queries = {
+        "timeseries": {
+            "in_bbox": functools.partial(
+                lizard_connector.queries.in_bbox, endpoint="timeseries"),
+            "distance_to_point":
+                lizard_connector.lizard_connector.queries.distance_to_point,
+            "datetime_limits": lizard_connector.queries.datetime_limits,
+            "organisation": functools.partial(
+                lizard_connector.queries.organisation, endpoint="timeseries"),
+            "statistics": lizard_connector.queries.statistics
+        },
+        "locations": {
+            "in_bbox": functools.partial(
+                lizard_connector.queries.in_bbox, endpoint="timeseries"),
+            "distance_to_point": lizard_connector.queries.distance_to_point,
+            "organisation": functools.partial(
+                lizard_connector.queries.organisation, endpoint="locations")
+        }
+    }
 
 
-class Events(Endpoint):
-    endpoint = 'events'
+class Rasters(Datatype):
+    queries = {
+        "rasters": {
+            "feature_info": lizard_connector.queries.feature_info,
+            "limits": lizard_connector.queries.limits,
+            "organisation": functools.partial(
+                lizard_connector.queries.organisation, endpoint="rasters")
+        }
+    }
 
 
-# TODO:
-# class Assets(Endpoint):
-#     endpoint = ''
+class Events(Datatype):
+    queries = {
+        "events": {
+            "organisation": functools.partial(
+                lizard_connector.queries.organisation, endpoint="events")
+        }
+    }
+
+
+class Assets(Datatype):
+    queries = {
+        "leveerings": {
+            "organisation": functools.partial(
+                lizard_connector.queries.organisation, endpoint="leveerings")
+        },
+        "levees": {
+            "organisation": functools.partial(
+                lizard_connector.queries.organisation, endpoint="levees")
+        },
+        "leveesections": {
+            "organisation": functools.partial(
+                lizard_connector.queries.organisation, endpoint="leveesections"
+            )
+        },
+        "leveezones": {
+            "organisation": functools.partial(
+                lizard_connector.queries.organisation, endpoint="leveezones")
+        }
+    }

@@ -23,6 +23,15 @@ class QueriesTestCase(unittest.TestCase):
         self.assertEqual(bbox([0,1], [2,3]),
                          'POLYGON ((1 0, 1 2, 3 2, 3 0, 1 0))')
 
+    def test_wkt_polygon(self):
+        bbox = wkt_polygon([[1, 0], [1, 2]])
+        self.assertEqual(bbox, 'POLYGON ((1 0, 1 2))')
+
+    def test_wkt_point(self):
+        bbox = wkt_point(0, 1)
+        self.assertEqual(bbox, 'POINT (0 1)')
+
+
     def test_in_bbox(self):
         bbox = in_bbox([0,1], [2,3])
         self.assertDictEqual(bbox,
