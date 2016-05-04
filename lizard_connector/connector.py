@@ -52,9 +52,9 @@ class Connector(object):
             url (str): Lizard-api valid url.
 
         Returns:
-            A dictionary of the 'results'-part of the api-response.
+            A list of dictionaries of the 'results'-part of the api-response.
         """
-        json_ = json.loads(self.perform_request(url))
+        json_ = self.perform_request(url)
         self.count = json_.get('count')
         self.next_url = json_.get('next')
         json_ = json_.get('results', json_)
@@ -80,7 +80,7 @@ class Connector(object):
                         data to.
             data (dict): Dictionary with the data to post to the api
         """
-        return self.perform_request(url, data=json.dumps(data).encode('utf-8'))
+        return self.perform_request(url, data)
 
     def perform_request(self, url, data=None):
         """
@@ -98,15 +98,16 @@ class Connector(object):
             the JSON from the response when no data is sent, else None.
         """
         if data:
-            request_obj = urllib.request.Request(url, headers=self.header,
-                                                 data=data, method="POST")
+            request_obj = urllib.request.Request(
+                url,
+                headers=self.header,
+                data=json.dumps(data).encode('utf-8'),
+                method="POST")
         else:
             request_obj = urllib.request.Request(url, headers=self.header)
         with urllib.request.urlopen(request_obj) as resp:
-            encoding = resp.headers.get_content_charset()
-            encoding = encoding if encoding else 'UTF-8'
-            content = resp.read().decode(encoding)
-            return content
+            content = resp.read().decode('UTF-8')
+            return json.loads(content)
 
     def next_page(self):
         """
