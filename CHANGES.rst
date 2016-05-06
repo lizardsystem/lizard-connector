@@ -5,8 +5,9 @@ Changelog of lizard-connector
 0.3 (unreleased)
 ----------------
 
-- Nothing changed yet.
-
+- Http base urls are not allowed, throws exception when baseurl is not secure
+  (i.e. does not start with https).
+- Fixed a bug that caused a get to run two times.
 
 0.2 (2016-05-04)
 ----------------
