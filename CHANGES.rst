@@ -2,7 +2,7 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.3 (unreleased)
+0.3 (2016-05-06)
 ----------------
 
 - Http base urls are not allowed, throws exception when baseurl is not secure
