@@ -3,11 +3,13 @@
 Connector to Lizard api (e.g. https://demo.lizard.net/api/v2) for python.
 
 Includes:
-- Endpoints (Lizard api endoints, e.g. TimeseriesEndpoint)
+- Datatypes (Rasters, Timeseries, Events, Assets), these are still a work in
+  progress and experimental. In later versions these contain:
+    - queryfunctions for special cases such as geographical queries and time
+      related queries other queries can be input as a dictionary
+    - parserfunctions to parse the json obtained from Endpoint queries
+- Endpoints (Lizard api endoints)
 - Connector (http handling)
-- queryfunctions for special cases such as geographical queries and time
-related queries other queries can be input as a dictionary
-- parserfunctions to parse the json obtained from Endpoint queries
 """
 
 import json
@@ -19,6 +21,10 @@ import lizard_connector.queries
 
 
 class LizardApiTooManyResults(Exception):
+    pass
+
+
+class InvalidUrlError(Exception):
     pass
 
 
@@ -95,12 +101,14 @@ class Connector(object):
             data (dict): data in a list or dictionary format.
 
         Returns:
-            the JSON from the response when no data is sent, else None.
+            a dictionary with the response.
         """
         if data:
+            headers = self.header
+            headers['content-type'] = "application/json"
             request_obj = urllib.request.Request(
                 url,
-                headers=self.header,
+                headers=headers,
                 data=json.dumps(data).encode('utf-8'),
                 method="POST")
         else:
@@ -119,10 +127,9 @@ class Connector(object):
         return self
 
     def __next__(self):
-        try:
-            return self.perform_request(self.next_url)
-        except ValueError:
-            raise StopIteration
+        if self.next_url is not None:
+            return self.perform_request()
+        raise StopIteration
 
     @property
     def use_header(self):
@@ -165,8 +172,8 @@ class Endpoint(Connector):
         super().__init__(**kwargs)
         self.endpoint = endpoint
         base = base.strip(r'/')
-        if not base.startswith('http'):
-            base = 'https://' + base
+        if not base.startswith('https'):
+            raise InvalidUrlError('base should start with https')
         base = urllib.parse.urljoin(base, 'api/v2') + "/"
         self.base_url = urllib.parse.urljoin(base, self.endpoint) + "/"
 
