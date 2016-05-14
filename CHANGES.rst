@@ -5,7 +5,7 @@ Changelog of lizard-connector
 0.4 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Fixed uploading data.
 
 
 0.3 (2016-05-06)

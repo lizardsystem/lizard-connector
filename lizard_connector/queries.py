@@ -1,6 +1,7 @@
 # coding=utf-8
 import datetime
 import urllib.parse
+import string
 
 from lizard_connector import jsdatetime
 
@@ -196,6 +197,71 @@ def limits(layername, south_west, north_east):
 
 def search(q):
     return QueryDictionary(search=q)
+
+
+def isuuid(*uuid):
+    """Tests whether one or more strings are uuid like."""
+    return all(y in string.ascii_lowercase + string.digits + '-' for x in uuid
+               for y in x)
+
+
+def location_data(name, organisation, organisation_code, lon=None, lat=None,
+                  access_modifier=100, ddsc_show_on_map=False, **other_params):
+    if lon is None or lat is None:
+        geometry = None
+    else:
+        geometry = wkt_point(lon=lon, lat=lat)
+    if isuuid(organisation):
+        return QueryDictionary(
+                name=name,
+                organisation=organisation,
+                organisation_code=organisation_code,
+                geometry=geometry,
+                access_modifier=access_modifier,
+                ddsc_show_on_map=ddsc_show_on_map,
+                **other_params
+            )
+    else:
+        raise LizardApiImproperQueryError(
+            'organisation uuid is not a valid uuid')
+
+
+def timeseries_data(name, location, organisation_code,
+                    parameter_referenced_unit, access_modifier=100,
+                    value_type=1, supplier=None, supplier_code=None,
+                    **other_params):
+    if isuuid(location):
+        return QueryDictionary(
+            name=name,
+            location=location,
+            organisation_code=organisation_code,
+            access_modifier=access_modifier,
+            parameter_referenced_unit=parameter_referenced_unit,
+            value_type=value_type,
+            supplier=supplier,
+            supplier_code=supplier_code,
+            **other_params
+        )
+    else:
+        raise LizardApiImproperQueryError('location uuid is not a valid uuid')
+
+
+def timeseries_values_data(data):
+    try:
+        return [{'value': str(value), 'datetime': dt.isoformat() + 'Z'}
+                for dt, value in data]
+    except AttributeError:
+        return [{'value': str(value), 'datetime': dt} for dt, value in data]
+    except ValueError:
+        try:
+            for data_dict in data:
+                data_dict['value'] = str(data_dict['value'])
+                data_dict['datetime'] = data_dict['datetime'].isoformat() + 'Z'
+        except AttributeError:
+            for data_dict in data:
+                data_dict['value'] = str(data_dict['value'])
+        finally:
+            return data
 
 
 groundwater = QueryDictionary(object_type__id=107)

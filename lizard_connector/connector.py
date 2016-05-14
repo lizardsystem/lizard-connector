@@ -206,9 +206,12 @@ class Endpoint(Connector):
             data (dict): Dictionary with the data to post to the api
         """
         if uuid:
+            # adding slashes, since urllib.parse.urljoin doesn't add them and
+            # will replace the uuid with 'data'. The trailing slash is added
+            # because Lizard needs it.
             post_url = urllib.parse.urljoin(
-                urllib.parse.urljoin(self.base_url, uuid),
-                'data')
+                urllib.parse.urljoin(self.base_url, uuid) + '/',
+                'data') + '/'
         else:
             post_url = self.base_url
         return self.post(post_url, data)
