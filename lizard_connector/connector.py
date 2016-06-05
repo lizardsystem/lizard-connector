@@ -60,6 +60,9 @@ class Connector(object):
         Returns:
             A list of dictionaries of the 'results'-part of the api-response.
         """
+        if not self.all_pages:
+            self.next_url = url
+            return self
         json_ = self.perform_request(url)
         self.count = json_.get('count')
         self.next_url = json_.get('next')
@@ -72,8 +75,8 @@ class Connector(object):
                     count, self.max_results)
             )
         if self.all_pages:
-            for extra_json in self:
-                json_.update(extra_json.get('results', extra_json))
+            for new_result in self:
+                json_ += new_result
         return json_
 
     def post(self, url, data):
@@ -128,7 +131,10 @@ class Connector(object):
 
     def __next__(self):
         if self.next_url is not None:
-            return self.perform_request()
+            json_ = self.perform_request(self.next_url)
+            self.count = json_.get('count', 0)
+            self.next_url = json_.get('next')
+            return json_.get('results', json_)
         raise StopIteration
 
     @property
@@ -247,10 +253,15 @@ class Datatype(object):
         """Lists all available queries for an endpoint of this datatype."""
         return list(self.queries[endpoint].keys())
 
-    def download(self, endpoint, *querydicts, **queries):
+    def _download(self, endpoint, *querydicts, **queries):
         """Downloads a json as a dict from an endpoint."""
         endpoint_ = Endpoint(endpoint)
         return endpoint_.download(*querydicts, **queries)
+
+    def _upload(self, endpoint, *querydicts, **queries):
+        """Downloads a json as a dict from an endpoint."""
+        endpoint_ = Endpoint(endpoint)
+        return endpoint_.upload(*querydicts, **queries)
 
 
 class Timeseries(Datatype):

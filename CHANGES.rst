@@ -5,7 +5,9 @@ Changelog of lizard-connector
 0.4 (unreleased)
 ----------------
 
-- Fixed uploading data.
+- Fixed bug in iteration over paginated results.
+- When all_pages is set to False all methods involving get return the object as
+  an iterator.
 
 
 0.3 (2016-05-06)
