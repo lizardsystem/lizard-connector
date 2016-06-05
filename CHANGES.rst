@@ -2,7 +2,7 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.4 (unreleased)
+0.4 (2016-06-05)
 ----------------
 
 - Fixed bug in iteration over paginated results.
