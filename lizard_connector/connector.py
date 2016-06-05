@@ -132,7 +132,7 @@ class Connector(object):
     def __next__(self):
         if self.next_url is not None:
             json_ = self.perform_request(self.next_url)
-            self.count = json_.get('count', 0)
+            self.count = int(json_.get('count', 0))
             self.next_url = json_.get('next')
             return json_.get('results', json_)
         raise StopIteration
