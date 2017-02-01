@@ -13,11 +13,18 @@ Includes:
 """
 
 import json
-import urllib.request
-import urllib.parse
+try:
+    import urllib.request as urllib_request
+except ImportError:
+    import urllib2 as urllib_request
+try:
+    import urllib.parse as urllib_parse
+except:
+    import urlparse as urllib_parse
 import functools
 
 import lizard_connector.queries
+# import lizard_connector.queries
 
 
 class LizardApiTooManyResults(Exception):
@@ -106,14 +113,14 @@ class Connector(object):
         if data:
             headers = self.header
             headers['content-type'] = "application/json"
-            request_obj = urllib.request.Request(
+            request_obj = urllib_request.Request(
                 url,
                 headers=headers,
                 data=json.dumps(data).encode('utf-8'),
                 method="POST")
         else:
-            request_obj = urllib.request.Request(url, headers=self.header)
-        with urllib.request.urlopen(request_obj) as resp:
+            request_obj = urllib_request.Request(url, headers=self.header)
+        with urllib_request.urlopen(request_obj) as resp:
             content = resp.read().decode('UTF-8')
             return json.loads(content)
 
@@ -174,8 +181,8 @@ class Endpoint(Connector):
         base = base.strip(r'/')
         if not base.startswith('https'):
             raise InvalidUrlError('base should start with https')
-        base = urllib.parse.urljoin(base, 'api/v2') + "/"
-        self.base_url = urllib.parse.urljoin(base, self.endpoint) + "/"
+        base = urllib_parse.urljoin(base, 'api/v2') + "/"
+        self.base_url = urllib_parse.urljoin(base, self.endpoint) + "/"
 
     def download(self, *querydicts, **queries):
         """
@@ -192,8 +199,8 @@ class Endpoint(Connector):
         q = lizard_connector.queries.QueryDictionary(page_size=self.max_results
                                                      )
         q.update(*querydicts, **queries)
-        query = "?" + urllib.parse.urlencode(q)
-        url = urllib.parse.urljoin(self.base_url, query)
+        query = "?" + urllib_parse.urlencode(q)
+        url = urllib_parse.urljoin(self.base_url, query)
         return self.get(url)
 
     def upload(self, data, uuid=None):
@@ -206,8 +213,8 @@ class Endpoint(Connector):
             data (dict): Dictionary with the data to post to the api
         """
         if uuid:
-            post_url = urllib.parse.urljoin(
-                urllib.parse.urljoin(self.base_url, uuid),
+            post_url = urllib_parse.urljoin(
+                urllib_parse.urljoin(self.base_url, uuid),
                 'data')
         else:
             post_url = self.base_url

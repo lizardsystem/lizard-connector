@@ -1,6 +1,9 @@
 # coding=utf-8
 import datetime
-import urllib.parse
+try:
+    import urllib.parse as urllib_parse
+except:
+    import urlparse as urllib_parse
 
 from lizard_connector import jsdatetime
 
@@ -34,7 +37,7 @@ class QueryDictionary(dict):
             self[k] = v
         queries = list(queries)
         if E and isinstance(E, str):
-            for k, v in urllib.parse.parse_qsl(E.strip('?')):
+            for k, v in urllib_parse.parse_qsl(E.strip('?')):
                 self[k] = v
         elif E:
             queries.append(E)
