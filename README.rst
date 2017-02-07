@@ -26,7 +26,7 @@ class::
 
     timeseries = lizard_connector.connector.Endpoint(
         username="example.username"
-        password="example_password"
+        password="example.password"
         endpoint = 'timeseries'
     )
 
@@ -41,8 +41,8 @@ class::
 
     relevant_queries = [
         lizard_connector.queries.in_bbox(south_west, north_east, endpoint),
-        organisation(organisation_id, endpoint),
-        datetime_limits(start, end)
+        lizard_connector.queries.organisation(organisation_id, endpoint),
+        lizard_connector.queries.datetime_limits(start, end)
     ]
 
-    results = timeseries.download(relevant_queries)
+    results = timeseries.download(*relevant_queries)
