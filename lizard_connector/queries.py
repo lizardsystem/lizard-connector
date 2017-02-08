@@ -2,7 +2,7 @@
 import datetime
 try:
     import urllib.parse as urllib_parse
-except:
+except ImportError:
     import urlparse as urllib_parse
 
 from lizard_connector import jsdatetime
@@ -84,12 +84,12 @@ def bbox(south_west, north_east):
     min_lat, min_lon = south_west
     max_lat, max_lon = north_east
     polygon_coordinates = [
-            [min_lon, min_lat],
-            [min_lon, max_lat],
-            [max_lon, max_lat],
-            [max_lon, min_lat],
-            [min_lon, min_lat],
-        ]
+        [min_lon, min_lat],
+        [min_lon, max_lat],
+        [max_lon, max_lat],
+        [max_lon, min_lat],
+        [min_lon, min_lat],
+    ]
     return wkt_polygon(polygon_coordinates)
 
 
