@@ -24,9 +24,10 @@ class::
     import lizard_connector
     import datetime
 
+    # Fill in your username and password
     timeseries = lizard_connector.connector.Endpoint(
-        username="example.username"
-        password="example_password"
+        username = "example.username",
+        password = "example_password",
         endpoint = 'timeseries'
     )
 
@@ -41,8 +42,8 @@ class::
 
     relevant_queries = [
         lizard_connector.queries.in_bbox(south_west, north_east, endpoint),
-        organisation(organisation_id, endpoint),
-        datetime_limits(start, end)
+        lizard_connector.queries.organisation(organisation_id, endpoint),
+        lizard_connector.queries.datetime_limits(start, end)
     ]
 
-    results = timeseries.download(relevant_queries)
+    results = timeseries.download(*relevant_queries)
