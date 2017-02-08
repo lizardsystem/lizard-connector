@@ -121,8 +121,9 @@ class Connector(object):
                 method="POST")
         else:
             request_obj = urllib_request.Request(url, headers=self.header)
-        response = urlopen(request_obj)
-        return json.load(response)
+        resp = urlopen(request_obj)
+        content = resp.read().decode('UTF-8')
+        return json.loads(content)
 
     def next_page(self):
         """
@@ -141,9 +142,7 @@ class Connector(object):
 
     def next(self):
         """The next function for Python 2."""
-        if self.next_url is not None:
-            return self.perform_request()
-        raise StopIteration
+        return __next__()
 
     @property
     def use_header(self):
@@ -183,10 +182,7 @@ class Endpoint(Connector):
                               obtained. When set to False only the first
                               page is obtained on get.
         """
-        try:
-            super().__init__(**kwargs)
-        except:
-            super(Endpoint, self).__init__(**kwargs)
+        super(Endpoint, self).__init__(**kwargs)
         self.endpoint = endpoint
         base = base.strip(r'/')
         if not base.startswith('https'):
@@ -223,9 +219,7 @@ class Endpoint(Connector):
             data (dict): Dictionary with the data to post to the api
         """
         if uuid:
-            post_url = urljoin(
-                urljoin(self.base_url, uuid),
-                'data')
+            post_url = urljoin(urljoin(self.base_url, uuid), 'data')
         else:
             post_url = self.base_url
         return self.post(post_url, data)
