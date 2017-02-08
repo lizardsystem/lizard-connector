@@ -26,8 +26,8 @@ class::
 
     # Fill in your username and password
     timeseries = lizard_connector.connector.Endpoint(
-        username = "example.username"
-        password = "example_password"
+        username = "example.username",
+        password = "example_password",
         endpoint = 'timeseries'
     )
 
