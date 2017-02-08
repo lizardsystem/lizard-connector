@@ -1,6 +1,9 @@
 # coding=utf-8
 import datetime
-import urllib.parse
+try:
+    import urllib.parse as urlparse
+except ImportError:
+    import urlparse
 
 from lizard_connector import jsdatetime
 
@@ -34,7 +37,7 @@ class QueryDictionary(dict):
             self[k] = v
         queries = list(queries)
         if E and isinstance(E, str):
-            for k, v in urllib.parse.parse_qsl(E.strip('?')):
+            for k, v in urlparse.parse_qsl(E.strip('?')):
                 self[k] = v
         elif E:
             queries.append(E)
@@ -81,12 +84,12 @@ def bbox(south_west, north_east):
     min_lat, min_lon = south_west
     max_lat, max_lon = north_east
     polygon_coordinates = [
-            [min_lon, min_lat],
-            [min_lon, max_lat],
-            [max_lon, max_lat],
-            [max_lon, min_lat],
-            [min_lon, min_lat],
-        ]
+        [min_lon, min_lat],
+        [min_lon, max_lat],
+        [max_lon, max_lat],
+        [max_lon, min_lat],
+        [min_lon, min_lat],
+    ]
     return wkt_polygon(polygon_coordinates)
 
 

@@ -12,10 +12,18 @@ Includes:
 - Connector (http handling)
 """
 
-import json
-import urllib.request
-import urllib.parse
 import functools
+import json
+try:
+    from urllib.parse import urlencode
+    from urllib.parse import urljoin
+    import urllib.request as urllib_request
+    from urllib.request import urlopen
+except ImportError:
+    from urllib import urlencode
+    from urlparse import urljoin
+    import urllib2 as urllib_request
+    from urllib2 import urlopen
 
 import lizard_connector.queries
 
@@ -106,16 +114,16 @@ class Connector(object):
         if data:
             headers = self.header
             headers['content-type'] = "application/json"
-            request_obj = urllib.request.Request(
+            request_obj = urllib_request.Request(
                 url,
                 headers=headers,
                 data=json.dumps(data).encode('utf-8'),
                 method="POST")
         else:
-            request_obj = urllib.request.Request(url, headers=self.header)
-        with urllib.request.urlopen(request_obj) as resp:
-            content = resp.read().decode('UTF-8')
-            return json.loads(content)
+            request_obj = urllib_request.Request(url, headers=self.header)
+        resp = urlopen(request_obj)
+        content = resp.read().decode('UTF-8')
+        return json.loads(content)
 
     def next_page(self):
         """
@@ -127,9 +135,14 @@ class Connector(object):
         return self
 
     def __next__(self):
+        """The next function for Python 3."""
         if self.next_url is not None:
             return self.perform_request()
         raise StopIteration
+
+    def next(self):
+        """The next function for Python 2."""
+        return __next__()
 
     @property
     def use_header(self):
@@ -169,13 +182,13 @@ class Endpoint(Connector):
                               obtained. When set to False only the first
                               page is obtained on get.
         """
-        super().__init__(**kwargs)
+        super(Endpoint, self).__init__(**kwargs)
         self.endpoint = endpoint
         base = base.strip(r'/')
         if not base.startswith('https'):
             raise InvalidUrlError('base should start with https')
-        base = urllib.parse.urljoin(base, 'api/v2') + "/"
-        self.base_url = urllib.parse.urljoin(base, self.endpoint) + "/"
+        base = urljoin(base, 'api/v2') + "/"
+        self.base_url = urljoin(base, self.endpoint) + "/"
 
     def download(self, *querydicts, **queries):
         """
@@ -189,11 +202,11 @@ class Endpoint(Connector):
                                    used as queries.
             queries (dict): all keyword arguments are used as queries.
         """
-        q = lizard_connector.queries.QueryDictionary(page_size=self.max_results
-                                                     )
+        q = lizard_connector.queries.QueryDictionary(
+            page_size=self.max_results)
         q.update(*querydicts, **queries)
-        query = "?" + urllib.parse.urlencode(q)
-        url = urllib.parse.urljoin(self.base_url, query)
+        query = "?" + urlencode(q)
+        url = urljoin(self.base_url, query)
         return self.get(url)
 
     def upload(self, data, uuid=None):
@@ -206,9 +219,7 @@ class Endpoint(Connector):
             data (dict): Dictionary with the data to post to the api
         """
         if uuid:
-            post_url = urllib.parse.urljoin(
-                urllib.parse.urljoin(self.base_url, uuid),
-                'data')
+            post_url = urljoin(urljoin(self.base_url, uuid), 'data')
         else:
             post_url = self.base_url
         return self.post(post_url, data)
