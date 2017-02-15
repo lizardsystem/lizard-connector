@@ -142,7 +142,7 @@ class Connector(object):
 
     def next(self):
         """The next function for Python 2."""
-        return __next__()
+        return self.__next__()
 
     @property
     def use_header(self):
