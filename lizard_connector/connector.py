@@ -14,6 +14,10 @@ Includes:
 
 import functools
 import json
+
+from time import sleep
+from threading import Thread, RLock
+
 try:
     from urllib.parse import urlencode
     from urllib.parse import urljoin
@@ -28,7 +32,14 @@ except ImportError:
 import lizard_connector.queries
 
 
+ASYNC_POLL_TIME = 5
+
+
 class LizardApiTooManyResults(Exception):
+    pass
+
+
+class LizardApiAsyncTaskFailure(Exception):
     pass
 
 
@@ -208,6 +219,53 @@ class Endpoint(Connector):
         query = "?" + urlencode(q)
         url = urljoin(self.base_url, query)
         return self.get(url)
+
+    def download_async(self, call_back=None, lock=None,
+                       thread_class=None, *querydicts, **queries):
+        """
+        
+        Args:
+            querydicts (iterable): all key valuepairs from dictionaries are
+                                   used as queries.
+            call_back (function): call back function that is called with the 
+                                  donwloaded result
+            lock (Lock): a threading lock  
+            thread_class (class): either Thread or a similar Thread class like
+                                  QThread
+            queries (dict): all keyword arguments are used as queries.
+        """
+        if call_back is None:
+            call_back = lambda x: x
+        if lock is None:
+            lock = RLock()
+        if thread_class is None:
+            thread_class = Thread
+        args = (call_back, lock) + querydicts
+        thread = thread_class(
+            target=self._async_worker,
+            args=args,
+            kwargs=queries
+        )
+        thread.start()
+
+    def _poll_task(self, task_url):
+        poll_result = self.get(task_url)
+        task_status = poll_result.get("task_status")
+        if task_status == "PENDING":
+            sleep(ASYNC_POLL_TIME)
+            return None, True
+        elif task_status == "SUCCESS":
+            return self.get(poll_result.get('url')), False
+        raise LizardApiAsyncTaskFailure
+
+    def _async_worker(self, call_back, lock, *querydicts, **queries):
+        task_url = self.download(async=True, *querydicts, **queries
+                                 )[0].get('url')
+        keep_polling = True
+        while keep_polling:
+            result, keep_polling = self._poll_task(task_url)
+        with lock:
+            call_back(result)
 
     def upload(self, data, uuid=None):
         """
