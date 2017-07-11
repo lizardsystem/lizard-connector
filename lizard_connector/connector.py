@@ -142,7 +142,7 @@ class Connector(object):
 
     def next(self):
         """The next function for Python 2."""
-        return __next__()
+        return self.__next__()
 
     @property
     def use_header(self):
@@ -266,8 +266,7 @@ class Timeseries(Datatype):
         "timeseries": {
             "in_bbox": functools.partial(
                 lizard_connector.queries.in_bbox, endpoint="timeseries"),
-            "distance_to_point":
-                lizard_connector.lizard_connector.queries.distance_to_point,
+            "distance_to_point": lizard_connector.queries.distance_to_point,
             "datetime_limits": lizard_connector.queries.datetime_limits,
             "organisation": functools.partial(
                 lizard_connector.queries.organisation, endpoint="timeseries"),
