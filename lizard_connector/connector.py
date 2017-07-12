@@ -57,7 +57,6 @@ class Connector(object):
         self.count = None
         self.username = username
         self.password = password
-        self.iterator_initialized = False
 
     def get(self, url):
         """
@@ -138,9 +137,6 @@ class Connector(object):
 
     def __next__(self):
         """The next function for Python 3."""
-        if not self.iterator_initialized:
-          self.iterator_initialized = True
-          return self.get(self.base_url)
         if self.next_url is not None:
             return self.get(self.next_url)
         raise StopIteration
@@ -193,7 +189,7 @@ class Endpoint(Connector):
         if not base.startswith('https'):
             raise InvalidUrlError('base should start with https')
         base = urljoin(base, 'api/v2') + "/"
-        self.base_url = urljoin(base, self.endpoint) + "/"
+        self.next_url = self.base_url = urljoin(base, self.endpoint) + "/"
 
     def download(self, *querydicts, **queries):
         """
