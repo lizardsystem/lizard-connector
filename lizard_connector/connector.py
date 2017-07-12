@@ -57,6 +57,7 @@ class Connector(object):
         self.count = None
         self.username = username
         self.password = password
+        self.iterator_initialized = False
 
     def get(self, url):
         """
@@ -137,6 +138,9 @@ class Connector(object):
 
     def __next__(self):
         """The next function for Python 3."""
+        if not self.iterator_initialized:
+          self.iterator_initialized = True
+          return self.get(self.base_url)
         if self.next_url is not None:
             return self.get(self.next_url)
         raise StopIteration
