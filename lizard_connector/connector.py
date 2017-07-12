@@ -189,7 +189,7 @@ class Endpoint(Connector):
         if not base.startswith('https'):
             raise InvalidUrlError('base should start with https')
         base = urljoin(base, 'api/v2') + "/"
-        self.base_url = urljoin(base, self.endpoint) + "/"
+        self.next_url = self.base_url = urljoin(base, self.endpoint) + "/"
 
     def download(self, *querydicts, **queries):
         """

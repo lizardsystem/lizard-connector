@@ -5,6 +5,8 @@ Changelog of lizard-connector
 0.4 (unreleased)
 ----------------
 
+- Initialize iterator.
+
 - Compatible with python 2.7.
 
 
