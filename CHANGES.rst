@@ -7,6 +7,8 @@ Changelog of lizard-connector
 
 - Compatible with python 2.7.
 
+- Refactored pagination.
+
 
 0.3 (2016-05-06)
 ----------------

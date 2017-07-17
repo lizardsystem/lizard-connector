@@ -38,8 +38,7 @@ class InvalidUrlError(Exception):
 
 class Connector(object):
 
-    def __init__(self, max_results=1000, username=None, password=None,
-                 all_pages=True):
+    def __init__(self, max_results=1000, username=None, password=None):
         """
         Args:
             max_results (int): maximum number of results allowed from one get.
@@ -47,14 +46,8 @@ class Connector(object):
                             login is used.
             password (str): lizard-api password to log in. Without one no login
                             is used.
-            all_pages (bool): when set to True, on get all pages are obtained.
-                              When set to False only the first page is obtained
-                              on get.
         """
-        self.all_pages = all_pages
         self.max_results = max_results
-        self.next_url = None
-        self.count = None
         self.username = username
         self.password = password
 
@@ -69,21 +62,18 @@ class Connector(object):
             A list of dictionaries of the 'results'-part of the api-response.
         """
         json_ = self.perform_request(url)
-        self.count = json_.get('count')
-        count = self.count if self.count else 0
-        if count > self.max_results:
+        self.handle_count(json_)
+        json_ = json_.get('results', json_)
+        return json_
+
+    def handle_count(self, json_):
+        count = json_.get('count')
+        if (count or 0) > self.max_results:
             raise LizardApiTooManyResults(
                 'Too many results: {} found, while max {} are accepted'.format(
-                    count, self.max_results)
+                    count or 0, self.max_results)
             )
-
-        self.next_url = json_.get('next')
-        json_ = json_.get('results', json_)
-
-        if self.all_pages:
-            for extra_json in self:
-                json_.update(extra_json.get('results', extra_json))
-        return json_
+        return count
 
     def post(self, url, data):
         """
@@ -126,25 +116,6 @@ class Connector(object):
         content = resp.read().decode('UTF-8')
         return json.loads(content)
 
-    def next_page(self):
-        """
-        Returns next page if available else raises StopIteration.
-        """
-        return self.__next__()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        """The next function for Python 3."""
-        if self.next_url is not None:
-            return self.get(self.next_url)
-        raise StopIteration
-
-    def next(self):
-        """The next function for Python 2."""
-        return self.__next__()
-
     @property
     def use_header(self):
         """
@@ -167,6 +138,67 @@ class Connector(object):
         return {}
 
 
+class PaginatedRequest(object):
+
+    def __init__(self, endpoint, url):
+        """
+        Args:
+            max_results (int): maximum number of results allowed from one get.
+            username (str): lizard-api user name to log in. Without one no
+                            login is used.
+            password (str): lizard-api password to log in. Without one no login
+                            is used.
+            paginate (bool): when set to True, paginate results. The connector
+                             now can be used as an iterator also the next_page
+                             method can be used to obtain the next page. When 
+                             set to False a query is built with a max size of 
+                             max_results. All these results are returned at 
+                             once.
+        """
+        self._endpoint = endpoint
+        self.next_url = url
+        self._count = None
+
+    def _next_page(self):
+        """
+        GET a json from the api.
+
+        Args:
+            url (str): Lizard-api valid url.
+
+        Returns:
+            A list of dictionaries of the 'results'-part of the api-response.
+        """
+        json_ = self._endpoint.perform_request(self.next_url)
+        self._count = self._endpoint.handle_count(json_)
+        self.next_url = json_.get('next')
+        json_ = json_.get('results', json_)
+        return json_
+
+    def next(self):
+        """The next function for Python 2."""
+        return self.__next__()
+
+    @property
+    def has_next_url(self):
+        """
+        Indicates whether other pages exist for this object.
+        """
+        return bool(self.next_url)
+
+    def __len__(self):
+        return self._count
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        """The next function for Python 3."""
+        if self.has_next_url:
+            return self._next_page()
+        raise StopIteration
+
+
 class Endpoint(Connector):
     max_results = 1000
 
@@ -179,9 +211,12 @@ class Endpoint(Connector):
                             login is used.
             password (str): lizard-api password to log in. Without one no login
                             is used.
-            all_pages (bool): when set to True, on download all pages are
-                              obtained. When set to False only the first
-                              page is obtained on get.
+            paginate (bool): when set to True, paginate results. The connector
+                             now can be used as an iterator also the next_page
+                             method can be used to obtain the next page. When 
+                             set to False a query is built with a max size of 
+                             max_results. All these results are returned at 
+                             once.
         """
         super(Endpoint, self).__init__(**kwargs)
         self.endpoint = endpoint
@@ -190,6 +225,13 @@ class Endpoint(Connector):
             raise InvalidUrlError('base should start with https')
         base = urljoin(base, 'api/v2') + "/"
         self.base_url = urljoin(base, self.endpoint) + "/"
+
+    def _build_url(self, *querydicts, **queries):
+        q = lizard_connector.queries.QueryDictionary(
+            page_size=self.max_results)
+        q.update(*querydicts, **queries)
+        query = "?" + urlencode(q)
+        return  urljoin(self.base_url, query)
 
     def download(self, *querydicts, **queries):
         """
@@ -203,12 +245,12 @@ class Endpoint(Connector):
                                    used as queries.
             queries (dict): all keyword arguments are used as queries.
         """
-        q = lizard_connector.queries.QueryDictionary(
-            page_size=self.max_results)
-        q.update(*querydicts, **queries)
-        query = "?" + urlencode(q)
-        url = urljoin(self.base_url, query)
+        url = self._build_url(*querydicts, **queries)
         return self.get(url)
+
+    def download_paginated(self, page_size=10, *querydicts, **queries):
+        url = self._build_url(page_size=page_size, *querydicts, **queries)
+        return PaginatedRequest(self, url)
 
     def upload(self, data, uuid=None):
         """
@@ -224,13 +266,6 @@ class Endpoint(Connector):
         else:
             post_url = self.base_url
         return self.post(post_url, data)
-
-    @property
-    def paginated(self):
-        """
-        Indicates whether this object is paginated (i.e. other pages exist).
-        """
-        return bool(self.next_url)
 
 
 class Datatype(object):
