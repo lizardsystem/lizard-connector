@@ -81,15 +81,16 @@ class Connector(object):
         """
         json_ = self.perform_request(url)
         self.count = json_.get('count')
-        self.next_url = json_.get('next')
-        json_ = json_.get('results', json_)
         count = self.count if self.count else 0
-
         if count > self.max_results:
             raise LizardApiTooManyResults(
                 'Too many results: {} found, while max {} are accepted'.format(
                     count, self.max_results)
             )
+
+        self.next_url = json_.get('next')
+        json_ = json_.get('results', json_)
+
         if self.all_pages:
             for extra_json in self:
                 json_.update(extra_json.get('results', extra_json))
@@ -140,7 +141,7 @@ class Connector(object):
         """
         Returns next page if available else raises StopIteration.
         """
-        return next(self)
+        return self.__next__()
 
     def __iter__(self):
         return self
@@ -148,7 +149,7 @@ class Connector(object):
     def __next__(self):
         """The next function for Python 3."""
         if self.next_url is not None:
-            return self.perform_request()
+            return self.get(self.next_url)
         raise StopIteration
 
     def next(self):
