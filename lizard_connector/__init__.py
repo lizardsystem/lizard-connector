@@ -1,5 +1,5 @@
 # package
-import lizard_connector.jsdatetime
-import lizard_connector.connector
-import lizard_connector.queries
-import lizard_connector.parsers
+from lizard_connector import jsdatetime
+from lizard_connector import connector
+from lizard_connector import queries
+from lizard_connector import parsers

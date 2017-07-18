@@ -15,7 +15,7 @@ Includes:
 import functools
 import json
 
-from time import sleep
+import time
 from threading import Thread, RLock
 
 try:
@@ -31,9 +31,8 @@ except ImportError:
 
 import lizard_connector.queries
 
-
-ASYNC_POLL_TIME = 5
-
+ASYNC_POLL_TIME = 1
+ASYNC_POLL_TIME_INCREASE = 1.5
 
 class LizardApiTooManyResults(Exception):
     pass
@@ -285,7 +284,7 @@ class Endpoint(Connector):
             thread_class = Thread
         args = (call_back, lock) + querydicts
         thread = thread_class(
-            target=self._async_worker,
+            target=self.async_worker,
             args=args,
             kwargs=queries
         )
@@ -294,20 +293,26 @@ class Endpoint(Connector):
     def _poll_task(self, task_url):
         poll_result = self.get(task_url)
         task_status = poll_result.get("task_status")
+        sleep_time = ASYNC_POLL_TIME
         if task_status == "PENDING":
-            sleep(ASYNC_POLL_TIME)
+            time.sleep(sleep_time)
+            sleep_time *= ASYNC_POLL_TIME_INCREASE
             return None, True
         elif task_status == "SUCCESS":
-            return self.get(poll_result.get('url')), False
-        raise LizardApiAsyncTaskFailure
+            url = poll_result.get('result_url')
+            return self.get(url), False
+        raise LizardApiAsyncTaskFailure(task_status, task_url)
 
-    def _async_worker(self, call_back, lock, *querydicts, **queries):
-        task_url = self.download(async=True, *querydicts, **queries
-                                 )[0].get('url')
+    def async_worker(self, call_back, lock=None, *querydicts, **queries):
+        queries.update({"async": "true"})
+        task_url = self.download(*querydicts, **queries).get('url')
         keep_polling = True
         while keep_polling:
             result, keep_polling = self._poll_task(task_url)
-        with lock:
+        if lock:
+            with lock:
+                call_back(result)
+        else:
             call_back(result)
 
     def upload(self, data, uuid=None):
@@ -324,6 +329,12 @@ class Endpoint(Connector):
         else:
             post_url = self.base_url
         return self.post(post_url, data)
+
+
+def save_to_json(result):
+    filename = "api_result_" + str(int(time.time() * 100)) + ".json"
+    with open(filename, 'w') as json_filehandler:
+        json.dump(result, json_filehandler)
 
 
 class Datatype(object):
