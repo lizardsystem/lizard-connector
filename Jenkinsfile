@@ -13,13 +13,15 @@ node ('nxt'){
     stage "Test python 3"
     sh "bin/test"
 
-###  We skip this step for now. Cause buildout doesn't seem to install mock.
-#    stage "Build python 2"
-#    sh "python bootstrap.py"
-#    sh "bin/buildout -vvvvv || bin/buildout -vvvvv"
-#    sh "bin/develop up"
+=begin
+    We skip this step for now. Cause buildout doesn't seem to install mock.
+    stage "Build python 2"
+    sh "python bootstrap.py"
+    sh "bin/buildout -vvvvv || bin/buildout -vvvvv"
+    sh "bin/develop up"
 
-#    stage "Test python 2"
-#    sh "bin/test"
+    stage "Test python 2"
+    sh "bin/test"
+=end
 
 }
