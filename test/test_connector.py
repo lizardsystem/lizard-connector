@@ -1,8 +1,12 @@
 import unittest
-import unittest.mock
 from collections import Iterable
 
 from lizard_connector.connector import *
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 class MockHeaders:
@@ -58,7 +62,7 @@ class ConnectorTestCase(unittest.TestCase):
                                         username='test.user')
 
     def __connector_test(self, connector_method, *args, **kwargs):
-        with unittest.mock.patch(
+        with mock.patch(
                 'lizard_connector.connector.urlopen', self.mock_urlopen):
             return connector_method(*args, **kwargs)
 
@@ -92,16 +96,16 @@ class ConnectorTestCase(unittest.TestCase):
 class EndpointTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.connector_get = unittest.mock.Mock(return_value=[{'uuid': 1}])
-        self.connector_post = unittest.mock.Mock(return_value=None)
+        self.connector_get = mock.Mock(return_value=[{'uuid': 1}])
+        self.connector_post = mock.Mock(return_value=None)
         self.endpoint = self.__connector_test(Endpoint, base='https://test.nl',
                                               endpoint='test')
         self.endpoint.next_url = 'test'
 
     def __connector_test(self, connector_method, *args, **kwargs):
-        with unittest.mock.patch('lizard_connector.connector.Connector.get',
+        with mock.patch('lizard_connector.connector.Connector.get',
                                  self.connector_get), \
-                unittest.mock.patch(
+                mock.patch(
                     'lizard_connector.connector.Connector.post',
                     self.connector_post):
             return connector_method(*args, **kwargs)
@@ -192,7 +196,7 @@ class DataTypeTestCase(unittest.TestCase):
             self.datatype2.queries['testendpoint']['test'](), 'test')
 
     def test_download(self):
-        with unittest.mock.patch(
+        with mock.patch(
                 'lizard_connector.connector.urlopen', self.mock_urlopen):
             self.assertDictEqual((self.datatype2.download('testendpoint'))[0],
                               {'uuid': 1})
