@@ -3,7 +3,7 @@ node ('nxt'){
     checkout scm
 
     stage "Build"
-    sh "python buildout/bootstrap.py"
+    sh "python bootstrap.py"
     sh "bin/buildout || bin/buildout"
     sh "bin/buildout -vvvvv"
     sh "bin/develop up"
