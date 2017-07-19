@@ -3,7 +3,6 @@ __author__ = 'roel.vandenberg@nelen-schuurmans.nl'
 import unittest
 from lizard_connector.jsdatetime import *
 import datetime
-import re
 
 
 class JavascriptDatetimeConverterTestCase(unittest.TestCase):
@@ -23,8 +22,8 @@ class JavascriptDatetimeConverterTestCase(unittest.TestCase):
 
     def test_now_iso(self):
         t_iso = now_iso()
-        rx = (r"(19|20)\d\d-(1[012]|0?[1-9])-(3[01]|2\d|0?[1-9])"   # date
-              r"T(2[0-4]|[0-1]\d):([0-5]\d):([0-5]\d)Z")            # time
+        rx = (r"(19|20)\d\d-(1[012]|0?[1-9])-(3[01]|[12]\d|0?[1-9])"  # date
+              r"T(2[0-4]|[0-1]\d):([0-5]\d):([0-5]\d)Z")              # time
         self.assertRegexpMatches(t_iso, rx)
 
     def test_round_js_to_date(self):
