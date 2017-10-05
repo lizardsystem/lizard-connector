@@ -58,6 +58,12 @@ class Connector(object):
         self.username = username
         self.password = password
 
+    def too_many_results(self, count):
+        """We don't want to download too much, but it's no problem if we
+        download page by page.
+        """
+        return self.all_pages and (count > self.max_results)
+
     def get(self, url):
         """
         GET a json from the api.
@@ -71,7 +77,7 @@ class Connector(object):
         json_ = self.perform_request(url)
         self.count = json_.get('count')
         count = self.count if self.count else 0
-        if count > self.max_results:
+        if self.too_many_results(count):
             raise LizardApiTooManyResults(
                 'Too many results: {} found, while max {} are accepted'.format(
                     count, self.max_results)
@@ -168,7 +174,6 @@ class Connector(object):
 
 
 class Endpoint(Connector):
-    max_results = 1000
 
     def __init__(self, endpoint, base="https://demo.lizard.net", **kwargs):
         """
