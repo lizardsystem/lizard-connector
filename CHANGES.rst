@@ -5,6 +5,8 @@ Changelog of lizard-connector
 0.4 (unreleased)
 ----------------
 
+- Fix max result count for paginated Endpoint.
+
 - Compatible with python 2.7.
 
 
