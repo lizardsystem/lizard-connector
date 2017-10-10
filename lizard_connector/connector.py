@@ -178,7 +178,7 @@ class PaginatedRequest(object):
         Args:
             endpoint (Endpoint): Endpoint object.
             url (str): First url to start the paginated request. This should
-            be Lizard-api valid url.
+                be Lizard-api valid url.
         """
         self._endpoint = endpoint
         self.next_url = url
@@ -238,7 +238,7 @@ class Endpoint(Connector):
         super(Endpoint, self).__init__(**kwargs)
         self.endpoint = endpoint
         base = base.strip(r'/')
-        if not base.startswith('https') and not 'localhost' in base:
+        if not base.startswith('https') and 'localhost' not in base:
             raise InvalidUrlError('base should start with https')
         base = urljoin(base, 'api/v2') + "/"
         self.base_url = urljoin(base, self.endpoint) + "/"
