@@ -11,6 +11,8 @@ Changelog of lizard-connector
 
 - Added Async downloads with callback.
 
+- removes max_result on Endpoint initialisation.
+
 
 0.3 (2016-05-06)
 ----------------
