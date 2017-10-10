@@ -10,7 +10,6 @@ long_description = '\n\n'.join([
 
 install_requires = [
     'setuptools',
-    'mock',
     ],
 
 tests_require = [
