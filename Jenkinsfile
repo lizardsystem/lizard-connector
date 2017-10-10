@@ -18,9 +18,6 @@ node ('nxt'){
     sh "bin/buildout || bin/buildout -vvvvv"
     sh "bin/develop up"
 
-    stage "Pep 8"
-    sh "if bin/pep8 lizard_connector > pep8.txt; then echo 'pep8 is a success'; else cat pep8.txt; false; fi"
-
-    stage "Test python 3"
+    stage "Test python 2"
     sh "bin/test"
 }
