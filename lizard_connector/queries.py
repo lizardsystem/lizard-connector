@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import datetime
 try:
     import urllib.parse as urlparse
+    unicode = str
 except ImportError:
     import urlparse
 
