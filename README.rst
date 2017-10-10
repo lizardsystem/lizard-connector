@@ -47,3 +47,32 @@ class::
     ]
 
     results = timeseries.download(*relevant_queries)
+
+
+Usage with PyQT (for Qgis plugins)
+----------------------------------
+You can create a QThread worker like so::
+
+    from PyQt4.QtCore import QThread
+    from PyQt4.QtCore import pyqtSignal
+
+
+    class Worker(QThread):
+        """This class creates a worker thread for getting the data."""
+        output = pyqtSignal(object)
+
+        def __init__(self, parent=None, endpoint=None, *querydicts, **queries):
+            """Initiate the Worker."""
+            super(Worker, self).__init__(parent)
+            self._endpoint = endpoint
+            self._querydicts = querydicts
+            self._queries = queries
+
+        def run(self):
+            """Called indirectly by PyQt if you call start().
+            This method retrieves the data from Lizard and emits it via the
+            output signal as dictionary.
+            """
+            data = self._endpoint._synchronous_async_download(
+                *self._querydicts, **self._queries)
+            self.output.emit(data)

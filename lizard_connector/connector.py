@@ -312,7 +312,7 @@ class Endpoint(Connector):
             lock = RLock()
         args = (call_back, lock) + querydicts
         thread = Thread(
-            target=self.async_worker,
+            target=self._async_worker,
             args=args,
             kwargs=queries
         )
@@ -331,7 +331,7 @@ class Endpoint(Connector):
             return self.get(url), False
         raise LizardApiAsyncTaskFailure(task_status, task_url)
 
-    def async_worker(self, call_back, lock=None, *querydicts, **queries):
+    def _async_worker(self, call_back, lock=None, *querydicts, **queries):
         """
         Starts a download as an api async task, but handles it synchronously.
         A call_back function handles the results.
@@ -352,18 +352,23 @@ class Endpoint(Connector):
                          call back function.
             queries (dict): all keyword arguments are used as queries.
         """
-        queries.update({"async": "true"})
-        page_size = queries.pop('page_size', 0)
-        task_url = self.download(
-            page_size=page_size, *querydicts, **queries).get('url')
-        keep_polling = True
-        while keep_polling:
-            result, keep_polling = self._poll_task(task_url)
+        result = self._synchronous_async_download(*querydicts, **queries)
         if lock:
             with lock:
                 call_back(result)
         else:
             call_back(result)
+
+    def _synchronous_download_async(self, *querydicts, **queries):
+        queries.update({"async": "true"})
+        page_size = queries.pop('page_size', 0)
+        task_url = self.download(
+            page_size=page_size, *querydicts, **queries).get('url')
+        keep_polling = True
+        result = None
+        while keep_polling:
+            result, keep_polling = self._poll_task(task_url)
+        return result
 
     def upload(self, data, uuid=None):
         """
