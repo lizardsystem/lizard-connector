@@ -3,8 +3,6 @@ node ('nxt'){
     checkout scm
 
     stage "Build python 3"
-    sh "pip install pip --upgrade; true"
-    sh "pip install setuptools --upgrade; true"
     sh "python3 bootstrap.py"
     sh "bin/buildout -vvvvv"
 
