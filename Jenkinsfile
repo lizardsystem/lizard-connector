@@ -2,9 +2,6 @@ node ('nxt'){
     stage "Checkout"
     checkout scm
 
-    stage "Pep 8"
-    sh "if bin/pep8 lizard_connector > pep8.txt; then echo 'pep8 is a success'; else cat pep8.txt; false; fi"
-
     stage "Build python 3"
     sh "pip3 install pip --upgrade"
     sh "pip3 install setuptools --upgrade"
@@ -21,4 +18,7 @@ node ('nxt'){
 
     stage "Test python 2"
     sh "bin/test"
+
+    stage "Pep 8"
+    sh "if bin/pep8 lizard_connector > pep8.txt; then echo 'pep8 is a success'; else cat pep8.txt; false; fi"
 }
