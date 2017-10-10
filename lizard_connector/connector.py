@@ -26,9 +26,7 @@ try:
     from urllib.parse import urljoin
     import urllib.request as urllib_request
     from urllib.request import urlopen
-    PYTHON_VERSION = 3
 except ImportError:
-    PYTHON_VERSION = 2
     from urllib import urlencode
     from urlparse import urljoin
     import urllib2 as urllib_request

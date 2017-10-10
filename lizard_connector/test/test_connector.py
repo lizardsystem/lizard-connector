@@ -3,15 +3,13 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import generators
 
+import json
 import unittest
 from collections import Iterable
 
-from lizard_connector.connector import *
+from lizard_connector.connector import Connector, Endpoint
 
-try:
-    from mock import patch, MagicMock
-except ImportError:
-    from unittest.mock import patch, MagicMock
+import mock
 
 
 class MockHeaders:
@@ -66,7 +64,7 @@ class ConnectorTestCase(unittest.TestCase):
                                         username='test.user')
 
     def __connector_test(self, connector_method, *args, **kwargs):
-        with patch(
+        with mock.patch(
                 'lizard_connector.connector.urlopen', self.mock_urlopen):
             return connector_method(*args, **kwargs)
 
@@ -101,18 +99,18 @@ class ConnectorTestCase(unittest.TestCase):
 class EndpointTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.connector_get = MagicMock(return_value=[{'uuid': 1}])
-        self.connector_get_task = MagicMock(return_value={
+        self.connector_get = mock.MagicMock(return_value=[{'uuid': 1}])
+        self.connector_get_task = mock.MagicMock(return_value={
             'url': "test", 'task_status': "SUCCESS"})
-        self.connector_post = MagicMock(return_value=None)
+        self.connector_post = mock.MagicMock(return_value=None)
         self.endpoint = self.__connector_test(Endpoint, base='https://test.nl',
                                               endpoint='test')
         self.endpoint.next_url = 'test'
 
     def __connector_test(self, connector_method, async=False, *args, **kwargs):
         connector = self.connector_get_task if async else self.connector_get
-        with patch(
-            'lizard_connector.connector.Connector.get', connector), patch(
+        with mock.patch(
+            'lizard_connector.connector.Connector.get', connector), mock.patch(
             'lizard_connector.connector.Connector.post', self.connector_post
         ):
             return connector_method(*args, **kwargs)
