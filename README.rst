@@ -73,6 +73,6 @@ You can create a QThread worker like so::
             This method retrieves the data from Lizard and emits it via the
             output signal as dictionary.
             """
-            data = self._endpoint._synchronous_async_download(
+            data = self._endpoint._synchronous_download_async(
                 *self._querydicts, **self._queries)
             self.output.emit(data)

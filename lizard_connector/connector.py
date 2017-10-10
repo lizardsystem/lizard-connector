@@ -352,7 +352,7 @@ class Endpoint(Connector):
                          call back function.
             queries (dict): all keyword arguments are used as queries.
         """
-        result = self._synchronous_async_download(*querydicts, **queries)
+        result = self._synchronous_download_async(*querydicts, **queries)
         if lock:
             with lock:
                 call_back(result)
