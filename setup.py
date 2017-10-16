@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 version = '0.4.dev0'
 
@@ -33,9 +33,7 @@ setup(name='lizard-connector',
       author_email='roel.vandenberg@nelen-schuurmans.nl',
       url='http://demo.lizard.net',
       license='GPL',
-      packages=find_packages(exclude=[
-          '*test',
-      ]),
+      packages=['lizard_connector'],
       include_package_data=True,
       zip_safe=False,
       install_requires=install_requires,
