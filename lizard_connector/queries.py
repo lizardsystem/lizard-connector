@@ -1,7 +1,10 @@
 # coding=utf-8
+from __future__ import unicode_literals
+
 import datetime
 try:
     import urllib.parse as urlparse
+    unicode = str
 except ImportError:
     import urlparse
 
@@ -36,7 +39,7 @@ class QueryDictionary(dict):
         for k, v in f.items():
             self[k] = v
         queries = list(queries)
-        if E and isinstance(E, str):
+        if E and (isinstance(E, str) or isinstance(E, unicode)):
             for k, v in urlparse.parse_qsl(E.strip('?')):
                 self[k] = v
         elif E:

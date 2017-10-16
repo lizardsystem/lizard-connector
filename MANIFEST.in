@@ -2,3 +2,5 @@
 include *.rst
 # Include everything in our project directory.
 graft lizard_connector
+# Exclude tests
+prune lizard_connector/test

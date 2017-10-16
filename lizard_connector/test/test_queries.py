@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import generators
+
 import unittest
 
 from lizard_connector.queries import *
@@ -20,7 +25,7 @@ class QueriesTestCase(unittest.TestCase):
         self.assertEqual(commaify(1, '2,3', 4), '1,2,3,4')
 
     def test_bbox(self):
-        self.assertEqual(bbox([0,1], [2,3]),
+        self.assertEqual(bbox([0, 1], [2, 3]),
                          'POLYGON ((1 0, 1 2, 3 2, 3 0, 1 0))')
 
     def test_wkt_polygon(self):
@@ -31,11 +36,10 @@ class QueriesTestCase(unittest.TestCase):
         bbox = wkt_point(0, 1)
         self.assertEqual(bbox, 'POINT (0 1)')
 
-
     def test_in_bbox(self):
-        bbox = in_bbox([0,1], [2,3])
-        self.assertDictEqual(bbox,
-            {'in_bbox': 'POLYGON ((1 0, 1 2, 3 2, 3 0, 1 0))'})
+        bbox = in_bbox([0, 1], [2, 3])
+        self.assertDictEqual(
+            bbox, {'in_bbox': 'POLYGON ((1 0, 1 2, 3 2, 3 0, 1 0))'})
 
     def test_distance_to_point(self):
         q = distance_to_point(3, 2, 1)
@@ -72,7 +76,8 @@ class QueriesTestCase(unittest.TestCase):
 
     def test_limits(self):
         self.assertDictEqual(
-            limits('test', [0,1], [2,3]), {
+            limits(
+                'test', [0, 1], [2, 3]), {
                 'srs': 'epsg:4326',
                 'height': 16,
                 'bbox': 'POLYGON ((1 0, 1 2, 3 2, 3 0, 1 0))',

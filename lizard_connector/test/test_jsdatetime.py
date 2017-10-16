@@ -1,15 +1,17 @@
-__author__ = 'roel.vandenberg@nelen-schuurmans.nl'
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import generators
 
 import unittest
 from lizard_connector.jsdatetime import *
 import datetime
-import re
 
 
 class JavascriptDatetimeConverterTestCase(unittest.TestCase):
 
-    datestring_regex = r"(0[1-9]|[12]\d|3[01])([- /.])(0{0,1}[1-9]|1[012])\2(" \
-                r"19|20)\d\d"
+    datestring_regex = r"(0[1-9]|[12]\d|3[01])([- /.])(0{0,1}[1-9]|1[012])\2" \
+                       r"(19|20)\d\d"
 
     def test_todaystr(self):
         t = todaystr()
@@ -23,8 +25,8 @@ class JavascriptDatetimeConverterTestCase(unittest.TestCase):
 
     def test_now_iso(self):
         t_iso = now_iso()
-        rx = (r"(19|20)\d\d-(1[012]|0?[1-9])-(3[01]|2\d|0?[1-9])"   # date
-              r"T(2[0-4]|[0-1]\d):([0-5]\d):([0-5]\d)Z")            # time
+        rx = (r"(19|20)\d\d-(1[012]|0?[1-9])-(3[01]|[12]\d|0?[1-9])"  # date
+              r"T(2[0-4]|[0-1]\d):([0-5]\d):([0-5]\d)Z")              # time
         self.assertRegexpMatches(t_iso, rx)
 
     def test_round_js_to_date(self):
@@ -44,9 +46,10 @@ class JavascriptDatetimeConverterTestCase(unittest.TestCase):
     def test_datetime_to_datestring(self):
         date = datetime.datetime(1993, 12, 31)
         datestring = datetime_to_datestring(date)
-        self.assertRegexpMatches(datestring, self.datestring_regex,
-                        "datetime_to_datestring() does not return a valid "
-                        "date string")
+        self.assertRegexpMatches(
+            datestring, self.datestring_regex,
+            "datetime_to_datestring() does not return a valid date string"
+        )
         self.assertEqual(datestring, "31-12-1993", "datetime_to_datestring() "
                                                    "conversion is corrupt")
 
