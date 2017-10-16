@@ -2,7 +2,7 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.4 (2017-10-16)
+0.5 (unreleased)
 ----------------
 
 - Compatible with python 2.7.
@@ -11,7 +11,16 @@ Changelog of lizard-connector
 
 - Added Async downloads with callback.
 
-- removes max_result on Endpoint initialisation.
+- Removes max_result on Endpoint initialisation.
+
+
+0.4 (2016-06-05)
+----------------
+
+- Fixed bug in iteration over paginated results.
+
+- When all_pages is set to False all methods involving get return the object as
+  an iterator.
 
 
 0.3 (2016-05-06)
