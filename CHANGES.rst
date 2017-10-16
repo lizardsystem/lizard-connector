@@ -2,7 +2,7 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.5 (unreleased)
+0.5 (2017-10-16)
 ----------------
 
 - Compatible with python 2.7.
