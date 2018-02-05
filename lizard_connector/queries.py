@@ -2,13 +2,17 @@
 from __future__ import unicode_literals
 
 import datetime
-try:
-    import urllib.parse as urlparse
-    unicode = str
-except ImportError:
-    import urlparse
+import sys
 
 from lizard_connector import jsdatetime
+
+if sys.version_info.major < 3:
+    # py2
+    import urlparse
+else:
+    # py3
+    import urllib.parse as urlparse
+    unicode = str
 
 
 class LizardApiImproperQueryError(Exception):

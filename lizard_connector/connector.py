@@ -17,22 +17,25 @@ from __future__ import unicode_literals
 from __future__ import generators
 
 import json
-
 import time
+import sys
 from threading import Thread, RLock
 
-try:
-    from urllib.parse import urlencode
-    from urllib.parse import urljoin
-    import urllib.request as urllib_request
-    from urllib.request import urlopen
-except ImportError:
+import lizard_connector.queries
+
+if sys.version_info.major < 3:
+    # py2
     from urllib import urlencode
     from urlparse import urljoin
     import urllib2 as urllib_request
     from urllib2 import urlopen
+else:
+    # py3
+    from urllib.parse import urlencode
+    from urllib.parse import urljoin
+    import urllib.request as urllib_request
+    from urllib.request import urlopen
 
-import lizard_connector.queries
 
 ASYNC_POLL_TIME = 1
 ASYNC_POLL_TIME_INCREASE = 1.5
