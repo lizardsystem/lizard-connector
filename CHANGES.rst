@@ -2,7 +2,7 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.6 (unreleased)
+0.6 (2018-02-07)
 ----------------
 
 - Add explicit py2/3 imports to mitigate problems with the ``future`` library.
