@@ -119,11 +119,11 @@ class EndpointTestCase(unittest.TestCase):
         self.__connector_test(self.endpoint.download, q1=2)
         try:
             self.connector_get.assert_called_with(
-                'https://test.nl/api/v2/test/?q1=2&page_size=1000',
+                'https://test.nl/api/v3/test/?q1=2&page_size=1000',
                 raise_error_on_next_url=True)
         except AssertionError:
             self.connector_get.assert_called_with(
-                'https://test.nl/api/v2/test/?page_size=1000&q1=2',
+                'https://test.nl/api/v3/test/?page_size=1000&q1=2',
                 raise_error_on_next_url=True)
 
     def test_paginated_download(self):
@@ -138,12 +138,12 @@ class EndpointTestCase(unittest.TestCase):
         second_call = self.connector_get_task.call_args_list[0][1]
         self.assertDictEqual(
             second_call, {'raise_error_on_next_url': True})
-        for x in ['https://test.nl/api/v2/test/?async=true&q1=2&page_size=0',
-                  'https://test.nl/api/v2/test/?async=true&page_size=0&q1=2',
-                  'https://test.nl/api/v2/test/?q1=2&async=true&page_size=0',
-                  'https://test.nl/api/v2/test/?page_size=0&async=true&q1=2',
-                  'https://test.nl/api/v2/test/?q1=2&page_size=0&async=true',
-                  'https://test.nl/api/v2/test/?page_size=0&q1=2&async=true'
+        for x in ['https://test.nl/api/v3/test/?async=true&q1=2&page_size=0',
+                  'https://test.nl/api/v3/test/?async=true&page_size=0&q1=2',
+                  'https://test.nl/api/v3/test/?q1=2&async=true&page_size=0',
+                  'https://test.nl/api/v3/test/?page_size=0&async=true&q1=2',
+                  'https://test.nl/api/v3/test/?q1=2&page_size=0&async=true',
+                  'https://test.nl/api/v3/test/?page_size=0&q1=2&async=true'
                   ]:
             try:
                 self.assertEqual(first_call, x)
@@ -153,12 +153,12 @@ class EndpointTestCase(unittest.TestCase):
         self.assertTrue(success)
 
     def test_post(self):
-        self.__connector_test(self.endpoint.upload, uuid="1", data={"a": 1})
+        self.__connector_test(self.endpoint.upload, uuid="1", a=1)
         self.connector_post.assert_called_with(
-            'https://test.nl/api/v2/test/data', {"a": 1})
-        self.__connector_test(self.endpoint.upload, data={"a": 1})
+            'https://test.nl/api/v3/test/data', {"a": 1})
+        self.__connector_test(self.endpoint.upload, a=1)
         self.connector_post.assert_called_with(
-            'https://test.nl/api/v2/test/', {"a": 1})
+            'https://test.nl/api/v3/test/', {"a": 1})
 
 
 class PaginatedRequestTestcase(unittest.TestCase):

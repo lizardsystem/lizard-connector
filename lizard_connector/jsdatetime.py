@@ -34,7 +34,9 @@ def datetime_to_js(date_time):
 
 
 def js_to_datetime(date_time):
+    print(date_time)
     if date_time is not None:
+        print(JS_EPOCH + dt.timedelta(seconds=date_time/1000))
         return JS_EPOCH + dt.timedelta(seconds=date_time/1000)
 
 

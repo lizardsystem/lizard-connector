@@ -17,11 +17,13 @@ from __future__ import unicode_literals
 from __future__ import generators
 
 import json
+import getpass
 import time
 import sys
 from threading import Thread, RLock
 
 import lizard_connector.queries
+import lizard_connector.parsers as parsers
 
 if sys.version_info.major < 3:
     # py2
@@ -174,7 +176,7 @@ class Connector(object):
 
 class PaginatedRequest(object):
 
-    def __init__(self, endpoint, url):
+    def __init__(self, endpoint, url, scientific=False):
         """
         Args:
             endpoint (Endpoint): Endpoint object.
@@ -184,6 +186,7 @@ class PaginatedRequest(object):
         self._endpoint = endpoint
         self.next_url = url
         self._count = None
+        self._scientific = scientific
 
     def _next_page(self):
         """
@@ -199,7 +202,7 @@ class PaginatedRequest(object):
         self._count = json_.get('count')
         self.next_url = json_.get('next')
         json_ = json_.get('results', json_)
-        return json_
+        return parsers.scientific(json_)
 
     def next(self):
         """The next function for Python 2."""
@@ -227,7 +230,8 @@ class PaginatedRequest(object):
 
 class Endpoint(Connector):
 
-    def __init__(self, endpoint, base="https://demo.lizard.net", **kwargs):
+    def __init__(self, endpoint, base="https://demo.lizard.net", version='3',
+                 scientific=False, **kwargs):
         """
         Args:
             base (str): lizard-nxt url.
@@ -241,8 +245,10 @@ class Endpoint(Connector):
         base = base.strip(r'/')
         if not base.startswith('https') and 'localhost' not in base:
             raise InvalidUrlError('base should start with https')
-        base = urljoin(base, 'api/v2') + "/"
-        self.base_url = urljoin(base, self.endpoint) + "/"
+        base = urljoin(base, 'api/v') + str(version) + "/"
+        self.base_url = urljoin(base, self.endpoint)
+        self.base_url += "/" if not self.base_url.endswith('/') else ""
+        self._scientific = scientific
 
     def _build_url(self, page_size=1000, *querydicts, **queries):
         q = lizard_connector.queries.QueryDictionary(
@@ -266,7 +272,10 @@ class Endpoint(Connector):
             queries (dict): all keyword arguments are used as queries.
         """
         url = self._build_url(page_size=page_size, *querydicts, **queries)
-        return self.get(url, raise_error_on_next_url=True)
+        result = self.get(url, raise_error_on_next_url=True)
+        if self._scientific:
+            return parsers.scientific(result)
+        return result
 
     def download_paginated(self, page_size=100, *querydicts, **queries):
         """
@@ -290,6 +299,8 @@ class Endpoint(Connector):
             an iterable that returns the results of each page.
         """
         url = self._build_url(page_size=page_size, *querydicts, **queries)
+        if self._scientific:
+            return PaginatedRequest(self, url, scientific=self._scientific)
         return PaginatedRequest(self, url)
 
     def download_async(self, call_back=None, lock=None, *querydicts,
@@ -373,7 +384,7 @@ class Endpoint(Connector):
             result, keep_polling = self._poll_task(task_url)
         return result
 
-    def upload(self, data, uuid=None):
+    def upload(self, uuid=None, sub_endpoint='data', **data):
         """
         Upload data to the api at this endpoint.
 
@@ -383,7 +394,37 @@ class Endpoint(Connector):
             data (dict): Dictionary with the data to post to the api
         """
         if uuid:
-            post_url = urljoin(urljoin(self.base_url, uuid), 'data')
+            post_url = urljoin(urljoin(self.base_url, uuid), sub_endpoint)
         else:
             post_url = self.base_url
         return self.post(post_url, data)
+
+
+class Client(object):
+    _endpoints = ()
+
+    def __init__(self, base="https://demo.lizard.net", username=None,
+                 password=None, scientific=True, **kwargs):
+        if username is not None:
+            kwargs.update({
+                "username": username,
+                "password": password or getpass.getpass()
+            })
+        self.base = base
+        for endpoint in self.endpoints:
+            setattr(
+                self, endpoint, Endpoint(
+                    endpoint=endpoint,
+                    base=self.base,
+                    scientific=scientific,
+                    **kwargs
+                )
+            )
+
+    @property
+    def endpoints(self):
+        if not self._endpoints:
+            root = Endpoint(base=self.base, endpoint="")
+            result = root.download(page_size=0, format="json")
+            self._endpoints = tuple(result.keys())
+        return self._endpoints
