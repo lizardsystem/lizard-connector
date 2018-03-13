@@ -20,6 +20,7 @@ from threading import Thread, RLock
 
 import lizard_connector.queries
 import lizard_connector.parsers as parsers
+import lizard_connector.callbacks as callbacks
 
 if sys.version_info.major < 3:
     # py2
@@ -49,24 +50,6 @@ class LizardApiAsyncTaskFailure(Exception):
 
 class InvalidUrlError(Exception):
     pass
-
-
-def no_op(*args, **kwargs):
-    pass
-
-
-def save_to_json(result, file_base="api_result"):
-    """
-    Saves a result to json with a timestamp in milliseconds.
-
-    Args:
-        result (list|dict): a json dumpable object to save to file.
-        file_base (str): filename base. Can contain a relative or absolute
-                         path.
-    """
-    filename = "{}_{}.json".format(file_base, str(int(time.time() * 1000)))
-    with open(filename, 'w') as json_filehandler:
-        json.dump(result, json_filehandler)
 
 
 class Connector(object):
@@ -260,7 +243,7 @@ class Endpoint(Connector):
         query = "?" + urlencode(q)
         return urljoin(self.base_url, query)
 
-    def download(self, page_size=1000, *querydicts, **queries):
+    def download(self, page_size=1000, parse=True, *querydicts, **queries):
         """
         Query the api at this endpoint and download its data.
 
@@ -270,13 +253,16 @@ class Endpoint(Connector):
         Args:
             page_size (int): the page_size parameter when more results are
                 returned than the page size allows an error is returned.
+            parse (bool): parse the output. No parser returns a python object.
             querydicts (iterable): all key valuepairs from dictionaries are
                                    used as queries.
             queries (dict): all keyword arguments are used as queries.
         """
         url = self._build_url(page_size=page_size, *querydicts, **queries)
         result = self.get(url, raise_error_on_next_url=True)
-        return self.parse(result)
+        if parse:
+            return self.parse(result)
+        return result
 
     def download_paginated(self, page_size=100, *querydicts, **queries):
         """
@@ -320,7 +306,7 @@ class Endpoint(Connector):
             queries (dict): all keyword arguments are used as queries.
         """
         if call_back is None:
-            call_back = no_op
+            call_back = callbacks.no_op
         if lock is None:
             lock = RLock()
         args = (call_back, lock) + querydicts
@@ -376,7 +362,9 @@ class Endpoint(Connector):
         queries.update({"async": "true"})
         page_size = queries.pop('page_size', 0)
         task_url = self.download(
-            page_size=page_size, *querydicts, **queries).get('url')
+            page_size=page_size, parse=False, *querydicts, **queries
+        ).get('url')
+        print(task_url)
         keep_polling = True
         result = None
         while keep_polling:
