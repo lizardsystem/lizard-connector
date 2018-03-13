@@ -51,12 +51,12 @@ class QueriesTestCase(unittest.TestCase):
         self.assertDictEqual(q, {'start': 1073001600000, 'end': 1388707200000})
 
     def test_organisation(self):
-        self.assertDictEqual(organisation('1', 'test'),
+        self.assertDictEqual({'organisation__unique_id': '1'},
+                             organisation('1', 'test'))
+        self.assertDictEqual({'unique_id': '1'},
+                             organisation('1', 'organisation'))
+        self.assertDictEqual(organisation('1', 'timeseries'),
                              {'location__organisation__unique_id': '1'})
-        self.assertDictEqual(organisation('1', 'organisation'),
-                             {'unique_id': '1'})
-        self.assertDictEqual(organisation('1', 'location'),
-                             {'organisation__unique_id': '1'})
 
     def test_statistics(self):
         self.assertDictEqual(statistics('min', 'max'),

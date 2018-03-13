@@ -3,11 +3,7 @@
 Connector to Lizard api (e.g. https://demo.lizard.net/api/v2) for python.
 
 Includes:
-- Datatypes (Rasters, Timeseries, Events, Assets), these are still a work in
-  progress and experimental. In later versions these contain:
-    - queryfunctions for special cases such as geographical queries and time
-      related queries other queries can be input as a dictionary
-    - parserfunctions to parse the json obtained from Endpoint queries
+- A Lizard Client that allows querying an API of one of the Lizard portals.
 - Endpoints (Lizard api endoints)
 - Connector (http handling)
 """
@@ -75,7 +71,8 @@ def save_to_json(result, file_base="api_result"):
 
 class Connector(object):
 
-    def __init__(self, username=None, password=None):
+    def __init__(self, username=None, password=None, parser=parsers.json,
+                 parser_kwargs=None):
         """
         Args:
             username (str): lizard-api user name to log in. Without one no
@@ -83,8 +80,13 @@ class Connector(object):
             password (str): lizard-api password to log in. Without one no login
                             is used.
         """
-        self.username = username
-        self.password = password
+        self.__username = username
+        self.__password = password
+        if isinstance(parser, str):
+            self._parser = getattr(parsers, parser)
+        else:
+            self._parser = parser
+        self._parser_kwargs = parser_kwargs or {}
 
     def get(self, url, raise_error_on_next_url=False):
         """
@@ -123,7 +125,7 @@ class Connector(object):
         """
         return self.perform_request(url, data)
 
-    def perform_request(self, url, data=None):
+    def perform_request(self, url, data=None, option=None):
         """
         GETs parameters from the Lizard api or POSTs data to the Lizard api.
 
@@ -139,7 +141,7 @@ class Connector(object):
             a dictionary with the response.
         """
         if data:
-            headers = self.header
+            headers = self.__header
             headers['content-type'] = "application/json"
             request_obj = urllib_request.Request(
                 url,
@@ -147,7 +149,7 @@ class Connector(object):
                 data=json.dumps(data).encode('utf-8'),
             )
         else:
-            request_obj = urllib_request.Request(url, headers=self.header)
+            request_obj = urllib_request.Request(url, headers=self.__header)
         resp = urlopen(request_obj)
         content = resp.read().decode('UTF-8')
         return json.loads(content)
@@ -157,26 +159,29 @@ class Connector(object):
         """
         Indicates if header with login is used.
         """
-        if self.username is None or self.password is None:
+        if self.__username is None or self.__password is None:
             return False
         return True
 
     @property
-    def header(self):
+    def __header(self):
         """
         The header with credentials for the api.
         """
         if self.use_header:
             return {
-                "username": self.username,
-                "password": self.password
+                "username": self.__username,
+                "password": self.__password
             }
         return {}
+
+    def parse(self, result):
+        return self._parser(result, **self._parser_kwargs)
 
 
 class PaginatedRequest(object):
 
-    def __init__(self, endpoint, url, scientific=False):
+    def __init__(self, endpoint, url):
         """
         Args:
             endpoint (Endpoint): Endpoint object.
@@ -186,7 +191,6 @@ class PaginatedRequest(object):
         self._endpoint = endpoint
         self.next_url = url
         self._count = None
-        self._scientific = scientific
 
     def _next_page(self):
         """
@@ -198,11 +202,11 @@ class PaginatedRequest(object):
         Returns:
             A list of dictionaries of the 'results'-part of the api-response.
         """
-        json_ = self._endpoint.perform_request(self.next_url)
-        self._count = json_.get('count')
-        self.next_url = json_.get('next')
-        json_ = json_.get('results', json_)
-        return parsers.scientific(json_)
+        result = self._endpoint.perform_request(self.next_url)
+        self._count = result.get('count')
+        self.next_url = result.get('next')
+        result = result.get('results', result)
+        return self._endpoint.parse(result)
 
     def next(self):
         """The next function for Python 2."""
@@ -231,7 +235,7 @@ class PaginatedRequest(object):
 class Endpoint(Connector):
 
     def __init__(self, endpoint, base="https://demo.lizard.net", version='3',
-                 scientific=False, **kwargs):
+                 **kwargs):
         """
         Args:
             base (str): lizard-nxt url.
@@ -248,11 +252,10 @@ class Endpoint(Connector):
         base = urljoin(base, 'api/v') + str(version) + "/"
         self.base_url = urljoin(base, self.endpoint)
         self.base_url += "/" if not self.base_url.endswith('/') else ""
-        self._scientific = scientific
 
     def _build_url(self, page_size=1000, *querydicts, **queries):
         q = lizard_connector.queries.QueryDictionary(
-            page_size=page_size)
+            page_size=page_size, format='json')
         q.update(*querydicts, **queries)
         query = "?" + urlencode(q)
         return urljoin(self.base_url, query)
@@ -273,9 +276,7 @@ class Endpoint(Connector):
         """
         url = self._build_url(page_size=page_size, *querydicts, **queries)
         result = self.get(url, raise_error_on_next_url=True)
-        if self._scientific:
-            return parsers.scientific(result)
-        return result
+        return self.parse(result)
 
     def download_paginated(self, page_size=100, *querydicts, **queries):
         """
@@ -299,8 +300,6 @@ class Endpoint(Connector):
             an iterable that returns the results of each page.
         """
         url = self._build_url(page_size=page_size, *querydicts, **queries)
-        if self._scientific:
-            return PaginatedRequest(self, url, scientific=self._scientific)
         return PaginatedRequest(self, url)
 
     def download_async(self, call_back=None, lock=None, *querydicts,
@@ -382,7 +381,7 @@ class Endpoint(Connector):
         result = None
         while keep_polling:
             result, keep_polling = self._poll_task(task_url)
-        return result
+        return self.parse(result)
 
     def upload(self, uuid=None, sub_endpoint='data', **data):
         """
@@ -400,11 +399,12 @@ class Endpoint(Connector):
         return self.post(post_url, data)
 
 
-class Client(object):
-    _endpoints = ()
+class Client(Connector):
+    __endpoints = ()
 
     def __init__(self, base="https://demo.lizard.net", username=None,
-                 password=None, scientific=True, **kwargs):
+                 password=None, parser=parsers.scientific, parser_kwargs=None,
+                 **kwargs):
         if username is not None:
             kwargs.update({
                 "username": username,
@@ -416,15 +416,18 @@ class Client(object):
                 self, endpoint, Endpoint(
                     endpoint=endpoint,
                     base=self.base,
-                    scientific=scientific,
+                    parser=parser,
+                    parser_kwargs=parser_kwargs,
                     **kwargs
                 )
             )
+        super(Client, self).__init__(
+            parser=parser, parser_kwargs=parser_kwargs, **kwargs)
 
     @property
     def endpoints(self):
-        if not self._endpoints:
+        if not self.__endpoints:
             root = Endpoint(base=self.base, endpoint="")
             result = root.download(page_size=0, format="json")
-            self._endpoints = tuple(result.keys())
-        return self._endpoints
+            self.__endpoints = tuple(result.keys())
+        return self.__endpoints

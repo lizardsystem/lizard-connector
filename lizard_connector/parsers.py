@@ -111,11 +111,13 @@ def as_dataframes(results, sep='__', convert_timestamps=True):
     metadata_dataframe = pd.DataFrame([x[0] for x in flattened])
     if convert_timestamps:
         to_timestamps(metadata_dataframe)
-        event_dataframes = [-
-            to_timestamps(pd.DataFrame(x[1])) if x[1] else None
-                            for x in flattened]
+        event_dataframes = [
+            to_timestamps(pd.DataFrame(x[1])) if x[1] else None for x in
+            flattened
+        ]
     else:
-        event_dataframes = [pd.DataFrame(x[1]) if x[1] else [] for x in flattened]
+        event_dataframes = [
+            pd.DataFrame(x[1]) if x[1] else [] for x in flattened]
     try:
         return metadata_dataframe, event_dataframes
     except NameError:
@@ -127,18 +129,22 @@ def as_dataframes(results, sep='__', convert_timestamps=True):
 
 def scientific(results, sep='__', convert_timestamps=True):
     try:
+        if isinstance(results, dict):
+            print(dict)
+            results = [results]
         if isinstance(results[0], list):
             try:
                 return np.array(results)
             except NameError:
                 raise ImportError(
                     "Trying to convert to numpy array without numpy. "
-                    "Please install Pandas."
+                    "Please install Numpy."
                 )
         else:
-            metadata, events = as_dataframes(results, sep, convert_timestamps)
-            if all(x is None for x in events):
-                return metadata
-            return events
+            return as_dataframes(results, sep, convert_timestamps)
     except IndexError:
         return
+
+
+def json(results, **kwargs):
+    return results

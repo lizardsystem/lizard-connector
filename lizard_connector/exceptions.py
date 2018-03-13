@@ -8,3 +8,7 @@ class LizardApiAsyncTaskFailure(Exception):
 
 class InvalidUrlError(Exception):
     pass
+
+
+class LizardApiImproperQueryError(Exception):
+    pass

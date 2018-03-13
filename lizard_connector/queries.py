@@ -5,6 +5,7 @@ import datetime
 import sys
 
 from lizard_connector import jsdatetime
+from lizard_connector.exceptions import LizardApiImproperQueryError
 
 if sys.version_info.major < 3:
     # py2
@@ -15,8 +16,34 @@ else:
     unicode = str
 
 
-class LizardApiImproperQueryError(Exception):
-    pass
+ASSETS = (
+    'bridge',
+    'culvert',
+    'fixeddrainagelevelarea',
+    'groundwaterstation',
+    'filter',
+    'leveecrossection',
+    'levee',
+    'leveesection',
+    'leveezone',
+    "manhole",
+    "measuringstation",
+    "monitoringwell",
+    "opticalfiber",
+    "orifice",
+    "outlet",
+    "overflow",
+    "parcel",
+    "pipe",
+    "polder",
+    "pressurepipe",
+    "pumpeddrainagearea",
+    "pump",
+    "pumpstation",
+    "sluice",
+    "wastewatertreatmentplant",
+    "weirs",
+)
 
 
 class QueryDictionary(dict):
@@ -68,12 +95,13 @@ def wkt_point(lon, lat):
     return ''.join(('POINT (', str(lon), ' ', str(lat), ')'))
 
 
-def wkt_polygon(polygon_coordinates):
+def wkt_polygon(polygon_coordinates, srid=None):
     points = [' '.join([str(x), str(y)]) for x, y in polygon_coordinates]
-    return 'POLYGON ((' + ', '.join(points) + '))'
+    srid_str = srid + ';' if srid else ''
+    return srid_str + 'POLYGON ((' + ', '.join(points) + '))'
 
 
-def bbox(south_west, north_east):
+def bbox(south_west, north_east, srid=None):
     """
     Creates a bounding box in Well-known text (WKT).
 
@@ -97,10 +125,10 @@ def bbox(south_west, north_east):
         [max_lon, min_lat],
         [min_lon, min_lat],
     ]
-    return wkt_polygon(polygon_coordinates)
+    return wkt_polygon(polygon_coordinates, srid)
 
 
-def in_bbox(south_west, north_east, endpoint=None):
+def in_bbox(south_west, north_east, endpoint=None, srid=None):
     """
     Find all locations within a certain bounding box.
 
@@ -121,7 +149,7 @@ def in_bbox(south_west, north_east, endpoint=None):
         a query dictionary.
     """
     query = "geom_within" if endpoint == 'timeseries' else "in_bbox"
-    return QueryDictionary({query: bbox(south_west, north_east)})
+    return QueryDictionary({query: bbox(south_west, north_east, srid)})
 
 
 def distance_to_point(distance, lat, lon):
@@ -166,8 +194,8 @@ def organisation(organisation_id=None, endpoint=None):
     query_key = {
         None: "",
         "organisation": "",
-        "location": "organisation__"
-    }.get(endpoint, "location__organisation__") + "unique_id"
+        "timeseries": "location__organisation__"
+    }.get(endpoint, "organisation__") + "unique_id"
 
     org_query = QueryDictionary()
     if isinstance(organisation_id, str):
@@ -205,7 +233,15 @@ def limits(layername, south_west, north_east):
 
 
 def search(q):
-    return QueryDictionary(search=q)
+    return QueryDictionary(search=commaify(q))
 
 
-groundwater = QueryDictionary(object_type__id=107)
+def asset(asset, asset_id, endpoint=None):
+    assert asset.lower() in ASSETS, 'asset not in asset list: %s' % ', '.join(
+        ASSETS)
+    if endpoint == 'timeseries':
+        return QueryDictionary(object="%s$%d" % (asset.lower(), asset_id))
+    if endpoint == 'locations':
+        return QueryDictionary(
+            object_type__model=asset.lower(), object_id=asset_id)
+    return QueryDictionary()
