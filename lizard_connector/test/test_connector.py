@@ -126,19 +126,19 @@ class EndpointTestCase(unittest.TestCase):
             return connector_method(*args, **kwargs)
 
     def test_download(self):
-        self.__connector_test(self.endpoint.download, q1=2)
+        self.__connector_test(self.endpoint.get, q1=2)
         first_call = self.connector_get.call_args_list[0][0][0]
         expected = ('https://test.nl/api/v3/test/?q1=2&page_size=1000&'
                     'format=json')
         self.query_url(expected, first_call)
 
     def test_paginated_download(self):
-        result = self.endpoint.download_paginated('testendpoint')
+        result = self.endpoint.get_paginated('testendpoint')
         self.assertIsInstance(result, Iterable)
 
     def test_async_download(self):
         # This throws an error. That is ok.
-        self.__connector_test(self.endpoint.download_async, async=True, q1=2)
+        self.__connector_test(self.endpoint.get_async, async=True, q1=2)
         second_call = self.connector_get_task.call_args_list[0][1]
         self.assertDictEqual(
             second_call, {'raise_error_on_next_url': True})
@@ -148,10 +148,10 @@ class EndpointTestCase(unittest.TestCase):
         self.query_url(expected, first_call)
 
     def test_post(self):
-        self.__connector_test(self.endpoint.upload, uuid="1", a=1)
+        self.__connector_test(self.endpoint.create, uuid="1", a=1)
         self.connector_post.assert_called_with(
             'https://test.nl/api/v3/test/data', {"a": 1})
-        self.__connector_test(self.endpoint.upload, a=1)
+        self.__connector_test(self.endpoint.create, a=1)
         self.connector_post.assert_called_with(
             'https://test.nl/api/v3/test/', {"a": 1})
 

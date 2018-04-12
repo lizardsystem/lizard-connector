@@ -19,8 +19,8 @@ import sys
 from threading import Thread, RLock
 
 import lizard_connector.queries
-import lizard_connector.parsers as parsers
-import lizard_connector.callbacks as callbacks
+from lizard_connector import parsers
+from lizard_connector import callbacks
 
 if sys.version_info.major < 3:
     # py2
@@ -35,9 +35,14 @@ else:
     import urllib.request as urllib_request
     from urllib.request import urlopen
 
-
+DEFAULT_API_VERSION = '3'
 ASYNC_POLL_TIME = 1
 ASYNC_POLL_TIME_INCREASE = 1.5
+ADDITIONAL_ENDPOINTS_V3 = (
+    'raster_aggregates',
+)
+DEFAULT_PARSER = \
+    parsers.scientific if parsers.SCIENTIFIC_AVAILABLE else parsers.json
 
 
 class LizardApiTooManyResults(Exception):
@@ -87,7 +92,7 @@ class Connector(object):
         if raise_error_on_next_url and bool(json_.get('next', False)):
             raise LizardApiTooManyResults(
                 "\nThe Lizard API returns more than one result page. Please \n"
-                "use `download_paginated` or `download_async` methods \n"
+                "use `get_paginated` or `get_async` methods \n"
                 "instead for large api responses. Or increase the page_size \n"
                 "in the request parameters."
             )
@@ -217,8 +222,8 @@ class PaginatedRequest(object):
 
 class Endpoint(Connector):
 
-    def __init__(self, endpoint, base="https://demo.lizard.net", version='3',
-                 **kwargs):
+    def __init__(self, endpoint, base="https://demo.lizard.net",
+                 version=DEFAULT_API_VERSION, **kwargs):
         """
         Args:
             base (str): lizard-nxt url.
@@ -243,7 +248,7 @@ class Endpoint(Connector):
         query = "?" + urlencode(q)
         return urljoin(self.base_url, query)
 
-    def download(self, page_size=1000, parse=True, *querydicts, **queries):
+    def get(self, page_size=1000, parse=True, *querydicts, **queries):
         """
         Query the api at this endpoint and download its data.
 
@@ -259,19 +264,19 @@ class Endpoint(Connector):
             queries (dict): all keyword arguments are used as queries.
         """
         url = self._build_url(page_size=page_size, *querydicts, **queries)
-        result = self.get(url, raise_error_on_next_url=True)
+        result = super(Endpoint, self).get(url, raise_error_on_next_url=True)
         if parse:
             return self.parse(result)
         return result
 
-    def download_paginated(self, page_size=100, *querydicts, **queries):
+    def get_paginated(self, page_size=100, *querydicts, **queries):
         """
         Instantiates an iterable paginated request.
 
         The iterable returned has a length after first use. Example::
 
             end_point = Endpoint("sluices")
-            paginated_request = end_point.download_paginated()
+            paginated_request = end_point.get_paginated()
             len(paginated_request)  # this is None
             first_page = next(paginated_request)
             # this results in a number (the amount of available sluices):
@@ -288,12 +293,12 @@ class Endpoint(Connector):
         url = self._build_url(page_size=page_size, *querydicts, **queries)
         return PaginatedRequest(self, url)
 
-    def download_async(self, call_back=None, lock=None, *querydicts,
-                       **queries):
+    def get_async(self, call_back=None, lock=None, *querydicts,
+                  **queries):
         """
         Downloads async via a Thread. A call_back function handles the results.
 
-        By default download_async does make a call, but doesn't do anything. We
+        By default get_async does make a call, but doesn't do anything. We
         provide a default method to save to file: save_to_json.
 
         Args:
@@ -351,17 +356,17 @@ class Endpoint(Connector):
                          call back function.
             queries (dict): all keyword arguments are used as queries.
         """
-        result = self._synchronous_download_async(*querydicts, **queries)
+        result = self._synchronous_get_async(*querydicts, **queries)
         if lock:
             with lock:
                 call_back(result)
         else:
             call_back(result)
 
-    def _synchronous_download_async(self, *querydicts, **queries):
+    def _synchronous_get_async(self, *querydicts, **queries):
         queries.update({"async": "true"})
         page_size = queries.pop('page_size', 0)
-        task_url = self.download(
+        task_url = self.get(
             page_size=page_size, parse=False, *querydicts, **queries
         ).get('url')
         print(task_url)
@@ -371,7 +376,7 @@ class Endpoint(Connector):
             result, keep_polling = self._poll_task(task_url)
         return self.parse(result)
 
-    def upload(self, uuid=None, sub_endpoint='data', **data):
+    def create(self, uuid=None, sub_endpoint='data', **data):
         """
         Upload data to the api at this endpoint.
 
@@ -391,8 +396,10 @@ class Client(Connector):
     __endpoints = ()
 
     def __init__(self, base="https://demo.lizard.net", username=None,
-                 password=None, parser=parsers.scientific, parser_kwargs=None,
+                 password=None, parser=DEFAULT_PARSER,
+                 version=DEFAULT_API_VERSION, parser_kwargs=None,
                  **kwargs):
+        self.api_version = version
         if username is not None:
             kwargs.update({
                 "username": username,
@@ -402,8 +409,9 @@ class Client(Connector):
         for endpoint in self.endpoints:
             setattr(
                 self, endpoint, Endpoint(
-                    endpoint=endpoint,
+                    endpoint=endpoint.replace('_', '-'),
                     base=self.base,
+                    version=self.api_version,
                     parser=parser,
                     parser_kwargs=parser_kwargs,
                     **kwargs
@@ -416,6 +424,11 @@ class Client(Connector):
     def endpoints(self):
         if not self.__endpoints:
             root = Endpoint(base=self.base, endpoint="")
-            result = root.download(page_size=0, format="json")
-            self.__endpoints = tuple(result.keys())
+            result = root.get(page_size=0, format="json")
+            self.__endpoints = tuple(sorted(
+                k.replace('-', '_') for k in result.keys()))
+
+            if self.api_version == '3':
+                self.__endpoints = tuple(
+                    sorted(self.__endpoints + ADDITIONAL_ENDPOINTS_V3))
         return self.__endpoints
