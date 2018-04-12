@@ -21,6 +21,10 @@ DATA_TYPE_FIELDS = (
 )
 
 
+ScientificResponse = collections.namedtuple(
+    "ScientificResponse", ("metadata", "data"))
+
+
 def list_on_key(results, key):
     """
     Get a list of a certain element from the root of the results attribute.
@@ -183,15 +187,16 @@ def scientific(results, sep='__', convert_timestamps=True):
         if isinstance(results[0], list):
             # our first result is a list internally, we return it as such:
             try:
-                return pd.DataFrame(), [np.array(results)]
+                return ScientificResponse(pd.DataFrame(), [np.array(results)])
             except NameError:
                 raise ImportError(
                     "Trying to convert to numpy array without numpy. "
                     "Please install Numpy."
                 )
-        return __as_dataframes(results, sep, convert_timestamps)
+        return ScientificResponse(
+            *__as_dataframes(results, sep, convert_timestamps))
     except IndexError:
-        return [], []
+        return ScientificResponse(pd.DataFrame(), [])
 
 
 def json(results, **kwargs):
