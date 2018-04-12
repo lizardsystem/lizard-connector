@@ -369,7 +369,6 @@ class Endpoint(Connector):
         task_url = self.get(
             page_size=page_size, parse=False, *querydicts, **queries
         ).get('url')
-        print(task_url)
         keep_polling = True
         result = None
         while keep_polling:

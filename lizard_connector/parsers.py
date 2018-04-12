@@ -99,10 +99,10 @@ def flatten_result(results, parent_key='', sep='__'):
             continue
         if events:
             break
-    return flatten_dict(results, sep=sep), events
+    return flatten_dict(results, parent_key=parent_key, sep=sep), events
 
 
-def to_timestamps(dataframe):
+def __to_timestamps(dataframe):
     if dataframe is None or dataframe.empty:
         return
     for time_column in (c for c in dataframe.columns if
@@ -112,7 +112,7 @@ def to_timestamps(dataframe):
         return dataframe
 
 
-def as_dataframes(results, sep='__', convert_timestamps=True):
+def __as_dataframes(results, sep='__', convert_timestamps=True):
     """
     Converts result dictionary to pandas DataFrame.
 
@@ -157,9 +157,9 @@ def as_dataframes(results, sep='__', convert_timestamps=True):
         event_dataframes = [
             pd.DataFrame(x[1]) if x[1] else [] for x in flattened]
     if convert_timestamps:
-        to_timestamps(metadata_dataframe)
+        __to_timestamps(metadata_dataframe)
         event_dataframes = [
-            to_timestamps(pd.DataFrame(x[1])) if x[1] else None for x in
+            __to_timestamps(pd.DataFrame(x[1])) if x[1] else None for x in
             flattened
         ]
 
@@ -189,7 +189,7 @@ def scientific(results, sep='__', convert_timestamps=True):
                     "Trying to convert to numpy array without numpy. "
                     "Please install Numpy."
                 )
-        return as_dataframes(results, sep, convert_timestamps)
+        return __as_dataframes(results, sep, convert_timestamps)
     except IndexError:
         return [], []
 
