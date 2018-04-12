@@ -4,31 +4,36 @@ lizard-connector
 Introduction
 ------------
 
-Connector to Lizard api (e.g. https://demo.lizard.net/api/v2) for python.
+Connector to Lizard api (e.g. https://demo.lizard.net/api/v3) for python.
 
 Includes:
-- Datatypes (experimental / alpha)
+- Client (experimental / alpha)
 - Endpoint (Easy access to Lizard api endpoints)
 - Connector (http handling)
+- parsers to parse the json obtained from Endpoint queries
 - queryfunctions for special cases such as geographical queries and time
-related queries other queries can be input as a dictionary
-- parserfunctions to parse the json obtained from Endpoint queries
+  related queries other queries can be input as a dictionary
+- callbacks for async data handling.
 
+When pandas, numpy are installed the Client returns `pandas.DataFrame`s and/or
+`numpy.array`s in a `ScientifResult` object.
 
 Example usage
 -------------
 
+An example jupyter notebook can be found `Example_EN.ipynb` or in Dutch:
+`Voorbeeld_NL.ipynb`.
+
 Use one endpoints https://demo.lizard.net/api/v2 in Python with the Endpoint
 class::
 
-    import lizard_connector
+    from lizard_connector import Client
+    import lizard_connector.queries
     import datetime
 
-    # Fill in your username and password
-    timeseries = lizard_connector.connector.Endpoint(
-        username = "example.username",
-        password = "example_password",
-        endpoint = 'timeseries'
+    # Fill in your username and password (your password will be prompted)
+    client = lizard_connector.Client(
+        username = "example.username"
     )
 
     endpoint = 'timeseries'
@@ -46,7 +51,7 @@ class::
         lizard_connector.queries.datetime_limits(start, end)
     ]
 
-    results = timeseries.download(*relevant_queries)
+    results = client.timeseries.get(*relevant_queries)
 
 
 Usage with PyQT (for Qgis plugins)
@@ -73,6 +78,6 @@ You can create a QThread worker like so::
             This method retrieves the data from Lizard and emits it via the
             output signal as dictionary.
             """
-            data = self._endpoint._synchronous_download_async(
+            data = self._endpoint._synchronous_get_async(
                 *self._querydicts, **self._queries)
             self.output.emit(data)
