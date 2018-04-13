@@ -130,9 +130,6 @@ def __as_dataframes(results, sep='__', convert_timestamps=True):
     if not results:
         # return empty.
         return pd.DataFrame(), []
-    if isinstance(results, dict):
-        # Result from a detail page, create a list of results.
-        results = [results]
 
     flattened = [flatten_result(r, sep=sep) for r in results]
 
@@ -145,10 +142,10 @@ def __as_dataframes(results, sep='__', convert_timestamps=True):
             "install Pandas."
         )
     try:
-        is_event_list = isinstance(flattened[0][1][0], list)
+        is_event_dict = isinstance(flattened[0][1][0], dict)
     except (IndexError, KeyError):
-        is_event_list = False
-    if is_event_list:
+        is_event_dict = False
+    if not is_event_dict:
         try:
             return metadata_dataframe, [
                 np.array(flat_data) for _, flat_data in flattened]
@@ -170,7 +167,7 @@ def __as_dataframes(results, sep='__', convert_timestamps=True):
     return metadata_dataframe, event_dataframes
 
 
-def scientific(results, sep='__', convert_timestamps=True):
+def scientific(results, sep='__', convert_timestamps=True, detail=False):
     """
     Parses a result as a metadata dataframe and a list of data.
     The data is either a numpy array or pandas DataFrame for each metadata row.
@@ -183,6 +180,12 @@ def scientific(results, sep='__', convert_timestamps=True):
         metadata dataframe and a list of data:
             list[pandas.DataFrame]|list[numpy.array]
     """
+    # TODO: clean up this function.
+    if detail:
+        results = [{"data": results}]
+    if isinstance(results, dict):
+        # Result from a raster_aggregates page, create a list of results.
+        results = [results]
     try:
         if isinstance(results[0], list):
             # our first result is a list internally, we return it as such:

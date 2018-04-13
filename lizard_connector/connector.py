@@ -21,6 +21,7 @@ from threading import Thread, RLock
 import lizard_connector.queries
 from lizard_connector import parsers
 from lizard_connector import callbacks
+from lizard_connector.exceptions import LizardApiImproperQueryError
 
 if sys.version_info.major < 3:
     # py2
@@ -41,6 +42,12 @@ ASYNC_POLL_TIME_INCREASE = 1.5
 ADDITIONAL_ENDPOINTS_V3 = (
     'raster_aggregates',
 )
+DETAIL_ENDPOINTS = (
+    'rasters',
+    'timeseries',
+    'opticalfibers'
+)
+
 DEFAULT_PARSER = \
     parsers.scientific if parsers.SCIENTIFIC_AVAILABLE else parsers.json
 
@@ -163,8 +170,8 @@ class Connector(object):
             }
         return {}
 
-    def parse(self, result):
-        return self._parser(result, **self._parser_kwargs)
+    def parse(self, result, detail=False):
+        return self._parser(result, detail=detail, **self._parser_kwargs)
 
 
 class PaginatedRequest(object):
@@ -223,7 +230,7 @@ class PaginatedRequest(object):
 class Endpoint(Connector):
 
     def __init__(self, endpoint, base="https://demo.lizard.net",
-                 version=DEFAULT_API_VERSION, **kwargs):
+                 version=DEFAULT_API_VERSION, detail=False, **kwargs):
         """
         Args:
             base (str): lizard-nxt url.
@@ -240,13 +247,22 @@ class Endpoint(Connector):
         base = urljoin(base, 'api/v') + str(version) + "/"
         self.base_url = urljoin(base, self.endpoint)
         self.base_url += "/" if not self.base_url.endswith('/') else ""
+        self.detail = detail
 
     def _build_url(self, page_size=1000, *querydicts, **queries):
         q = lizard_connector.queries.QueryDictionary(
             page_size=page_size, format='json')
         q.update(*querydicts, **queries)
+        base = self.base_url
+        if self.detail:
+            try:
+                uuid = q.pop('uuid')
+            except KeyError:
+                raise LizardApiImproperQueryError(
+                    "Missing `uuid` in query parameters.")
+            base = urljoin(base, "{}/{}/".format(uuid, "data"))
         query = "?" + urlencode(q)
-        return urljoin(self.base_url, query)
+        return urljoin(base, query)
 
     def get(self, page_size=1000, parse=True, *querydicts, **queries):
         """
@@ -264,9 +280,10 @@ class Endpoint(Connector):
             queries (dict): all keyword arguments are used as queries.
         """
         url = self._build_url(page_size=page_size, *querydicts, **queries)
-        result = super(Endpoint, self).get(url, raise_error_on_next_url=True)
+        result = super(Endpoint, self).get(
+            url, raise_error_on_next_url=not self.detail)
         if parse:
-            return self.parse(result)
+            return self.parse(result, detail=self.detail)
         return result
 
     def get_paginated(self, page_size=100, *querydicts, **queries):
@@ -385,7 +402,8 @@ class Endpoint(Connector):
             data (dict): Dictionary with the data to post to the api
         """
         if uuid:
-            post_url = urljoin(urljoin(self.base_url, uuid), sub_endpoint)
+            post_url = urljoin(
+                self.base_url, "{}/{}/".format(uuid, sub_endpoint))
         else:
             post_url = self.base_url
         return self.post(post_url, data)
@@ -406,16 +424,23 @@ class Client(Connector):
             })
         self.base = base
         for endpoint in self.endpoints:
+            endpoint_params = dict(
+                endpoint=endpoint.replace('_', '-'),
+                base=self.base,
+                version=self.api_version,
+                parser=parser,
+                parser_kwargs=parser_kwargs)
+            endpoint_params.update(kwargs)
             setattr(
-                self, endpoint, Endpoint(
-                    endpoint=endpoint.replace('_', '-'),
-                    base=self.base,
-                    version=self.api_version,
-                    parser=parser,
-                    parser_kwargs=parser_kwargs,
-                    **kwargs
-                )
+                self, endpoint, Endpoint(**endpoint_params)
             )
+            if endpoint in DETAIL_ENDPOINTS:
+                endpoint_params["detail"] = True
+                setattr(
+                    getattr(self, endpoint),
+                    "data",
+                    Endpoint(**endpoint_params)
+                )
         super(Client, self).__init__(
             parser=parser, parser_kwargs=parser_kwargs, **kwargs)
 

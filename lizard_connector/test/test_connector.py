@@ -150,7 +150,7 @@ class EndpointTestCase(unittest.TestCase):
     def test_post(self):
         self.__connector_test(self.endpoint.create, uuid="1", a=1)
         self.connector_post.assert_called_with(
-            'https://test.nl/api/v3/test/data', {"a": 1})
+            'https://test.nl/api/v3/test/1/data/', {"a": 1})
         self.__connector_test(self.endpoint.create, a=1)
         self.connector_post.assert_called_with(
             'https://test.nl/api/v3/test/', {"a": 1})
