@@ -52,10 +52,11 @@ def save_to_hdf5(result):
     """
     Saves a result to hdf5 file with a timestamp in milliseconds.
 
-    Use with scientific parser. HDF5 library should be installed.
+    Use with scientific parser. Requires the h5py library for HDF5.
 
     Args:
-        result ([pandas.DataFrame|numpy.array]): a json dumpable object to save to file.
+        result ([pandas.DataFrame|numpy.array]): a hdf5 dumpable object to save
+                                                 to file.
         file_base (str): filename base. Can contain a relative or absolute
                          path.
     """
