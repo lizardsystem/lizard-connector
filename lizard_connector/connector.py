@@ -12,6 +12,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import generators
 
+import copy
 import json
 import getpass
 import time
@@ -21,7 +22,7 @@ from threading import Thread, RLock
 import lizard_connector.queries
 from lizard_connector import parsers
 from lizard_connector import callbacks
-from lizard_connector.exceptions import LizardApiImproperQueryError
+from lizard_connector.exceptions import *
 
 if sys.version_info.major < 3:
     # py2
@@ -36,13 +37,14 @@ else:
     import urllib.request as urllib_request
     from urllib.request import urlopen
 
+
 DEFAULT_API_VERSION = '3'
 ASYNC_POLL_TIME = 1
 ASYNC_POLL_TIME_INCREASE = 1.5
 ADDITIONAL_ENDPOINTS_V3 = (
     'raster_aggregates',
 )
-DETAIL_ENDPOINTS = (
+DATA_DETAIL_ENDPOINTS = (
     'rasters',
     'timeseries',
     'opticalfibers'
@@ -50,18 +52,6 @@ DETAIL_ENDPOINTS = (
 
 DEFAULT_PARSER = \
     parsers.scientific if parsers.SCIENTIFIC_AVAILABLE else parsers.json
-
-
-class LizardApiTooManyResults(Exception):
-    pass
-
-
-class LizardApiAsyncTaskFailure(Exception):
-    pass
-
-
-class InvalidUrlError(Exception):
-    pass
 
 
 class Connector(object):
@@ -96,14 +86,14 @@ class Connector(object):
             A list of dictionaries of the 'results'-part of the api-response.
         """
         json_ = self.perform_request(url)
-        if raise_error_on_next_url and bool(json_.get('next', False)):
-            raise LizardApiTooManyResults(
-                "\nThe Lizard API returns more than one result page. Please \n"
-                "use `get_paginated` or `get_async` methods \n"
-                "instead for large api responses. Or increase the page_size \n"
-                "in the request parameters."
-            )
         try:
+            if raise_error_on_next_url and bool(json_.get('next', False)):
+                raise LizardApiTooManyResults(
+                    "\nThe Lizard API returns more than one result page. "
+                    "Please \nuse `get_paginated` or `get_async` methods \n"
+                    "instead for large api responses. Or increase the "
+                    "page_size\nin the request parameters."
+                )
             json_ = json_.get('results', json_)
         finally:
             return json_
@@ -120,7 +110,7 @@ class Connector(object):
         """
         return self.perform_request(url, data)
 
-    def perform_request(self, url, data=None, option=None):
+    def perform_request(self, url, data=None):
         """
         GETs parameters from the Lizard api or POSTs data to the Lizard api.
 
@@ -137,7 +127,7 @@ class Connector(object):
         """
         if data:
             headers = self.__header
-            headers['content-type'] = "application/json"
+            headers['Content-Type'] = "application/json"
             request_obj = urllib_request.Request(
                 url,
                 headers=headers,
@@ -145,9 +135,14 @@ class Connector(object):
             )
         else:
             request_obj = urllib_request.Request(url, headers=self.__header)
+        # TODO: this seems kinda magic and is better placed in a parser.
         resp = urlopen(request_obj)
-        content = resp.read().decode('UTF-8')
-        return json.loads(content)
+        content_type = resp.headers["Content-Type"]
+        if content_type == 'application/json':
+            return json.loads(resp.read().decode('UTF-8'))
+        elif 'text' in content_type:
+            return resp.read().decode('UTF-8')
+        return resp.read()
 
     @property
     def use_header(self):
@@ -230,7 +225,7 @@ class PaginatedRequest(object):
 class Endpoint(Connector):
 
     def __init__(self, endpoint, base="https://demo.lizard.net",
-                 version=DEFAULT_API_VERSION, detail=False, **kwargs):
+                 version=DEFAULT_API_VERSION, data_detail=False, **kwargs):
         """
         Args:
             base (str): lizard-nxt url.
@@ -244,25 +239,42 @@ class Endpoint(Connector):
         base = base.strip(r'/')
         if not base.startswith('https') and 'localhost' not in base:
             raise InvalidUrlError('base should start with https')
-        base = urljoin(base, 'api/v') + str(version) + "/"
-        self.base_url = urljoin(base, self.endpoint)
-        self.base_url += "/" if not self.base_url.endswith('/') else ""
-        self.detail = detail
+        base_url = urljoin(base, 'api/v') + str(version) + "/"
+        self.base_url = urljoin(base_url, self.endpoint)
+        if not self.base_url.endswith('/'):
+            self.base_url += "/"
+        self.__detail_pk = None
+        self.data_detail = data_detail
 
     def _build_url(self, page_size=1000, *querydicts, **queries):
         q = lizard_connector.queries.QueryDictionary(
             page_size=page_size, format='json')
         q.update(*querydicts, **queries)
         base = self.base_url
-        if self.detail:
+
+        if self.data_detail:
             try:
+                # the endpoints with data use a uuid as pk.
                 uuid = q.pop('uuid')
             except KeyError:
-                raise LizardApiImproperQueryError(
-                    "Missing `uuid` in query parameters.")
-            base = urljoin(base, "{}/{}/".format(uuid, "data"))
+                if self.__detail_pk:
+                    uuid = self.__detail_pk
+                else:
+                    raise LizardApiImproperQueryError(
+                        "Missing `uuid` in query parameters.")
+            base = urljoin(base, "{}/data/".format(uuid))
+        elif self.__detail_pk:
+            base = urljoin(base, "{}/".format(self.__detail_pk))
         query = "?" + urlencode(q)
         return urljoin(base, query)
+
+    def detail(self, pk):
+        detail_endpoint = copy.deepcopy(self)
+        detail_endpoint.__detail_pk = pk
+        for attr in detail_endpoint.__dict__.values():
+            if isinstance(attr, Endpoint):
+                attr.__detail_pk = pk
+        return detail_endpoint
 
     def get(self, page_size=1000, parse=True, *querydicts, **queries):
         """
@@ -339,17 +351,16 @@ class Endpoint(Connector):
         )
         thread.start()
 
-    def _poll_task(self, task_url):
+    def _poll_task(self, task_url, sleep_time=ASYNC_POLL_TIME):
         poll_result = self.get(task_url)
         task_status = poll_result.get("task_status")
-        sleep_time = ASYNC_POLL_TIME
         if task_status == "PENDING":
             time.sleep(sleep_time)
-            sleep_time *= ASYNC_POLL_TIME_INCREASE
             return None, True
         elif task_status == "SUCCESS":
             url = poll_result.get('result_url')
-            return self.get(url), False
+            return super(Endpoint, self).get(
+                url, raise_error_on_next_url=not self.detail), False
         raise LizardApiAsyncTaskFailure(task_status, task_url)
 
     def _async_worker(self, call_back, lock=None, *querydicts, **queries):
@@ -388,8 +399,10 @@ class Endpoint(Connector):
         ).get('url')
         keep_polling = True
         result = None
+        sleep_time = ASYNC_POLL_TIME
         while keep_polling:
-            result, keep_polling = self._poll_task(task_url)
+            result, keep_polling = self._poll_task(task_url, sleep_time)
+            sleep_time *= ASYNC_POLL_TIME_INCREASE
         return self.parse(result)
 
     def create(self, uuid=None, sub_endpoint='data', **data):
@@ -410,12 +423,33 @@ class Endpoint(Connector):
 
 
 class Client(Connector):
-    __endpoints = ()
+    """
+    Pythonic client for the Lizard NXT api.
+
+    Once a client is initialized one can retreive (meta)data from the Lizard
+    NXT api for each endpoint. The endpoints are available on the client as
+    attributes.
+    """
 
     def __init__(self, base="https://demo.lizard.net", username=None,
                  password=None, parser=DEFAULT_PARSER,
                  version=DEFAULT_API_VERSION, parser_kwargs=None,
                  **kwargs):
+        """
+        Args:
+            base (str): lizard-nxt url.
+            username (str): lizard-api user name to log in. Without one no
+                            login is used.
+            password (str): lizard-api password to log in. If a username is
+                            provided but a password is provided, the password
+                            is prompted.
+            parser (function): one of the `lizard_connector.parsers` parsers.
+               right now `scientific` or `json` are available. Used by each
+               endpoint to parse a lizard api response.
+            version (str): api version number (as a string).
+            parser_kwargs (dict): keyword arguments handed to the parser on
+                each endpoint parse call.
+        """
         self.api_version = version
         if username is not None:
             kwargs.update({
@@ -423,36 +457,33 @@ class Client(Connector):
                 "password": password or getpass.getpass()
             })
         self.base = base
-        for endpoint in self.endpoints:
+        self.__endpoints = ()
+        for endpoint_name in self.endpoints:
             endpoint_params = dict(
-                endpoint=endpoint.replace('_', '-'),
+                endpoint=endpoint_name.replace('_', '-'),
                 base=self.base,
                 version=self.api_version,
                 parser=parser,
                 parser_kwargs=parser_kwargs)
             endpoint_params.update(kwargs)
-            setattr(
-                self, endpoint, Endpoint(**endpoint_params)
-            )
-            if endpoint in DETAIL_ENDPOINTS:
-                endpoint_params["detail"] = True
-                setattr(
-                    getattr(self, endpoint),
-                    "data",
-                    Endpoint(**endpoint_params)
-                )
+            endpoint = Endpoint(**endpoint_params)
+            if endpoint_name in DATA_DETAIL_ENDPOINTS:
+                endpoint_params["data_detail"] = True
+                endpoint.data = Endpoint(**endpoint_params)
+            setattr(self, endpoint_name, endpoint)
+
         super(Client, self).__init__(
             parser=parser, parser_kwargs=parser_kwargs, **kwargs)
 
     @property
     def endpoints(self):
-        if not self.__endpoints:
-            root = Endpoint(base=self.base, endpoint="")
-            result = root.get(page_size=0, format="json")
-            self.__endpoints = tuple(sorted(
-                k.replace('-', '_') for k in result.keys()))
+        root = Endpoint(base=self.base, endpoint="")
+        result = root.get(page_size=0, format="json")
+        endpoints = tuple(sorted(
+            k.replace('-', '_') for k in result.keys()))
 
-            if self.api_version == '3':
-                self.__endpoints = tuple(
-                    sorted(self.__endpoints + ADDITIONAL_ENDPOINTS_V3))
-        return self.__endpoints
+        if self.api_version == '3':
+            self.__endpoints = tuple(
+                sorted(endpoints + ADDITIONAL_ENDPOINTS_V3))
+        self.__dict__['endpoints'] = endpoints
+        return endpoints

@@ -94,7 +94,7 @@ def flatten_dict(results, parent_key='', sep='__'):
 
 
 def flatten_result(results, parent_key='', sep='__'):
-    # First remove the results.
+    # First remove the data from the response.
     events = {}
     for data_type in DATA_TYPE_FIELDS:
         try:
