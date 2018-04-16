@@ -64,6 +64,11 @@ class Connector(object):
                             login is used.
             password (str): lizard-api password to log in. Without one no login
                             is used.
+            parser (function): one of the `lizard_connector.parsers` parsers.
+               right now `scientific` or `json` are available. Used by each
+               endpoint to parse a lizard api response.
+            parser_kwargs (dict): keyword arguments handed to the parser on
+                each endpoint parse call.
         """
         self.__username = username
         self.__password = password
@@ -228,11 +233,19 @@ class Endpoint(Connector):
                  version=DEFAULT_API_VERSION, data_detail=False, **kwargs):
         """
         Args:
+            endpoint (str): Lizard NXT api endpoint.
             base (str): lizard-nxt url.
             username (str): lizard-api user name to log in. Without one no
                             login is used.
             password (str): lizard-api password to log in. Without one no login
                             is used.
+            parser (function): one of the `lizard_connector.parsers` parsers.
+               right now `scientific` or `json` are available. Used by each
+               endpoint to parse a lizard api response.
+            version (str): api version number (as a string).
+            data_detail (bool): indicates whether this endpoint should behave
+                as a data detail endpoint of the form:
+                    `../api/{version}/{endpoint}/{uuid}/data`
         """
         super(Endpoint, self).__init__(**kwargs)
         self.endpoint = endpoint
@@ -269,6 +282,15 @@ class Endpoint(Connector):
         return urljoin(base, query)
 
     def detail(self, pk):
+        """
+        Returns a detail endpoint for an instance of this endpoint.
+
+        Args:
+            pk (str|int): the identifier for the endpoint instance. Usually an
+                integer or a uuid-as-string.
+        Returns:
+            An endpoint for the instance that belongs to the given pk.
+        """
         detail_endpoint = copy.deepcopy(self)
         detail_endpoint.__detail_pk = pk
         for attr in detail_endpoint.__dict__.values():
