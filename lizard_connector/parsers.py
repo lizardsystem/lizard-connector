@@ -54,7 +54,7 @@ def uuids(results, endpoint=None):
     return list_on_key(results, uuid)
 
 
-def flatten_dict(results, parent_key='', sep='__'):
+def __flatten_dict(results, parent_key='', sep='__'):
     """
     Flatten dictionary.
 
@@ -87,13 +87,13 @@ def flatten_dict(results, parent_key='', sep='__'):
     for k, v in results.items():
         new_key = parent_key + sep + k if parent_key else k
         if isinstance(v, collections.MutableMapping):
-            items.extend(flatten_dict(v, new_key, sep=sep).items())
+            items.extend(__flatten_dict(v, new_key, sep=sep).items())
         else:
             items.append((new_key, v))
     return dict(items)
 
 
-def flatten_result(results, parent_key='', sep='__'):
+def __flatten_result(results, parent_key='', sep='__'):
     # First remove the data from the response.
     events = {}
     for data_type in DATA_TYPE_FIELDS:
@@ -102,8 +102,12 @@ def flatten_result(results, parent_key='', sep='__'):
         except KeyError:
             continue
         if events:
-            break
-    return flatten_dict(results, parent_key=parent_key, sep=sep), events
+            try:
+                if 'data' in events.keys():
+                    events = events['data']
+            finally:
+                break
+    return __flatten_dict(results, parent_key=parent_key, sep=sep), events
 
 
 def __to_timestamps(dataframe):
@@ -113,7 +117,7 @@ def __to_timestamps(dataframe):
                         c.endswith('timestamp') or c in ('start', 'end')):
         dataframe[time_column] = pd.to_datetime(
             dataframe[time_column], unit='ms')
-        return dataframe
+    return dataframe
 
 
 def __as_dataframes(results, sep='__', convert_timestamps=True):
@@ -131,7 +135,7 @@ def __as_dataframes(results, sep='__', convert_timestamps=True):
         # return empty.
         return pd.DataFrame(), []
 
-    flattened = [flatten_result(r, sep=sep) for r in results]
+    flattened = [__flatten_result(r, sep=sep) for r in results]
 
     try:
         # metadata is always found in dict form.
@@ -141,10 +145,14 @@ def __as_dataframes(results, sep='__', convert_timestamps=True):
             "Trying to convert to pandas Dataframe without pandas. Please "
             "install Pandas."
         )
+    if convert_timestamps:
+        __to_timestamps(metadata_dataframe)
     try:
         is_event_dict = isinstance(flattened[0][1][0], dict)
     except (IndexError, KeyError):
         is_event_dict = False
+    except TypeError:
+        return metadata_dataframe, [f[1] for f in flattened]
     if not is_event_dict:
         try:
             return metadata_dataframe, [
@@ -158,11 +166,7 @@ def __as_dataframes(results, sep='__', convert_timestamps=True):
         event_dataframes = [
             pd.DataFrame(x[1]) if x[1] else [] for x in flattened]
     if convert_timestamps:
-        __to_timestamps(metadata_dataframe)
-        event_dataframes = [
-            __to_timestamps(pd.DataFrame(x[1])) if x[1] else None for x in
-            flattened
-        ]
+        event_dataframes = [__to_timestamps(df) for df in event_dataframes]
 
     return metadata_dataframe, event_dataframes
 
@@ -202,5 +206,5 @@ def scientific(results, sep='__', convert_timestamps=True, detail=False):
         return ScientificResponse(pd.DataFrame(), [])
 
 
-def json(results, **kwargs):
+def json(results, *args, **kwargs):
     return results

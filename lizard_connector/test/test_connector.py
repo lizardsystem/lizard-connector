@@ -143,8 +143,7 @@ class EndpointTestCase(unittest.TestCase):
         # This throws an error. That is ok.
         self.__connector_test(self.endpoint.get_async, async=True, q1=2)
         second_call = self.connector_get_task.call_args_list[0][1]
-        self.assertDictEqual(
-            second_call, {'raise_error_on_next_url': False})
+        self.assertDictEqual(second_call, {})
         first_call = self.connector_get_task.call_args_list[0][0][0]
         expected = ('https://test.nl/api/v3/test/?async=true&q1=2&page_size=0&'
                     'format=json')

@@ -85,20 +85,13 @@ class Connector(object):
         Args:
             url (str): Lizard-api valid url.
             raise_error_on_next_url (bool): when provided an error is raised
-                when a response contains a next_url field and the field is not
-                null.
+                when a response contains a next (url) field and the field is
+                not null.
         Returns:
             A list of dictionaries of the 'results'-part of the api-response.
         """
         json_ = self.perform_request(url)
         try:
-            if raise_error_on_next_url and bool(json_.get('next', False)):
-                raise LizardApiTooManyResults(
-                    "\nThe Lizard API returns more than one result page. "
-                    "Please \nuse `get_paginated` or `get_async` methods \n"
-                    "instead for large api responses. Or increase the "
-                    "page_size\nin the request parameters."
-                )
             json_ = json_.get('results', json_)
         finally:
             return json_
@@ -256,7 +249,7 @@ class Endpoint(Connector):
         self.base_url = urljoin(base_url, self.endpoint)
         if not self.base_url.endswith('/'):
             self.base_url += "/"
-        self.__detail_pk = None
+        self._detail_pk = None
         self.data_detail = data_detail
 
     def _build_url(self, page_size=1000, *querydicts, **queries):
@@ -270,14 +263,14 @@ class Endpoint(Connector):
                 # the endpoints with data use a uuid as pk.
                 uuid = q.pop('uuid')
             except KeyError:
-                if self.__detail_pk:
-                    uuid = self.__detail_pk
+                if self._detail_pk:
+                    uuid = self._detail_pk
                 else:
                     raise LizardApiImproperQueryError(
                         "Missing `uuid` in query parameters.")
             base = urljoin(base, "{}/data/".format(uuid))
-        elif self.__detail_pk:
-            base = urljoin(base, "{}/".format(self.__detail_pk))
+        elif self._detail_pk:
+            base = urljoin(base, "{}/".format(self._detail_pk))
         query = "?" + urlencode(q)
         return urljoin(base, query)
 
@@ -292,10 +285,10 @@ class Endpoint(Connector):
             An endpoint for the instance that belongs to the given pk.
         """
         detail_endpoint = copy.deepcopy(self)
-        detail_endpoint.__detail_pk = pk
+        detail_endpoint._detail_pk = pk
         for attr in detail_endpoint.__dict__.values():
             if isinstance(attr, Endpoint):
-                attr.__detail_pk = pk
+                attr._detail_pk = pk
         return detail_endpoint
 
     def get(self, page_size=1000, parse=True, *querydicts, **queries):
@@ -314,10 +307,16 @@ class Endpoint(Connector):
             queries (dict): all keyword arguments are used as queries.
         """
         url = self._build_url(page_size=page_size, *querydicts, **queries)
-        result = super(Endpoint, self).get(
-            url, raise_error_on_next_url=not self.detail)
+        result = super(Endpoint, self).get(url)
+        if isinstance(result, dict) and bool(result.get('next', False)):
+            raise LizardApiTooManyResults(
+                "The Lizard API returns more than one result page. Please \n"
+                "use `get_paginated` or `get_async` methods instead for\n"
+                "large api responses. Or increase the  page_size in the\n"
+                "request parameters."
+            )
         if parse:
-            return self.parse(result, detail=self.detail)
+            return self.parse(result, detail=self.data_detail)
         return result
 
     def get_paginated(self, page_size=100, *querydicts, **queries):
@@ -374,15 +373,14 @@ class Endpoint(Connector):
         thread.start()
 
     def _poll_task(self, task_url, sleep_time=ASYNC_POLL_TIME):
-        poll_result = self.get(task_url)
+        poll_result = super(Endpoint, self).get(task_url)
         task_status = poll_result.get("task_status")
         if task_status == "PENDING":
             time.sleep(sleep_time)
             return None, True
         elif task_status == "SUCCESS":
             url = poll_result.get('result_url')
-            return super(Endpoint, self).get(
-                url, raise_error_on_next_url=not self.detail), False
+            return super(Endpoint, self).get(url), False
         raise LizardApiAsyncTaskFailure(task_status, task_url)
 
     def _async_worker(self, call_back, lock=None, *querydicts, **queries):
@@ -416,9 +414,8 @@ class Endpoint(Connector):
     def _synchronous_get_async(self, *querydicts, **queries):
         queries.update({"async": "true"})
         page_size = queries.pop('page_size', 0)
-        task_url = self.get(
-            page_size=page_size, parse=False, *querydicts, **queries
-        ).get('url')
+        url = self._build_url(page_size=page_size, *querydicts, **queries)
+        task_url = super(Endpoint, self).get(url).get('url')
         keep_polling = True
         result = None
         sleep_time = ASYNC_POLL_TIME
@@ -505,7 +502,6 @@ class Client(Connector):
             k.replace('-', '_') for k in result.keys()))
 
         if self.api_version == '3':
-            self.__endpoints = tuple(
-                sorted(endpoints + ADDITIONAL_ENDPOINTS_V3))
+            endpoints = tuple(sorted(endpoints + ADDITIONAL_ENDPOINTS_V3))
         self.__dict__['endpoints'] = endpoints
         return endpoints
