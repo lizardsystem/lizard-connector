@@ -24,6 +24,7 @@ class MockHeaders:
     def __getitem__(self, item):
         return "application/json"
 
+
 class MockUrlopen:
 
     def __init__(self):
