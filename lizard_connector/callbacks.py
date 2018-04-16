@@ -1,4 +1,7 @@
 # coding=utf-8
+"""
+Callbacks to be used with lizard_connector.connector.Endpoint().get_async
+"""
 import json
 import time
 import pickle
@@ -20,7 +23,7 @@ def save_to_json(result):
     """
     Saves a result to json with a timestamp in milliseconds.
 
-    Use with json parser.
+    Use with Endpoints initialized with the lizard_connector.json parser.
 
     Args:
         result (list|dict): a json dumpable object to save to file.
@@ -34,7 +37,7 @@ def save_to_pickle(result):
     """
     Pickle a result to file with a timestamp in milliseconds.
 
-    Use with json parser.
+    Use with Endpoints initialized with the lizard_connector.json parser.
 
     Args:
         result (list|dict): a python serializable object to save to file.
@@ -48,7 +51,9 @@ def save_to_hdf5(result):
     """
     Saves a result to hdf5 file with a timestamp in milliseconds.
 
-    Use with scientific parser. Requires the h5py library for HDF5.
+    Use with Endpoints initialized with the lizard_connector.scientific parser.
+
+    Requires the h5py library for HDF5.
 
     Args:
         result (tuple[pandas.DataFrame|numpy.array]): a tuple with two elements
