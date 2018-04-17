@@ -5,7 +5,13 @@ Changelog of lizard-connector
 0.7 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Added Client.
+
+- Added parsers (scientific, json).
+
+- Added callbacks.
+
+- Renamed Endpoint `download...` methods to `get...`.
 
 
 0.6 (2018-02-07)
