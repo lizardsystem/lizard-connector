@@ -2,7 +2,7 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.7 (unreleased)
+0.7 (2018-04-17)
 ----------------
 
 - Added Client.
