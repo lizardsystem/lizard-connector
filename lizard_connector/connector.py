@@ -78,7 +78,7 @@ class Connector(object):
             self._parser = parser
         self._parser_kwargs = parser_kwargs or {}
 
-    def get(self, url, raise_error_on_next_url=False):
+    def get(self, url):
         """
         GET a json from the api.
 
@@ -398,7 +398,7 @@ class Endpoint(Connector):
         Args:
             querydicts (iterable): all key valuepairs from dictionaries are
                                    used as queries.
-            call_back (function): call back function that is called with the
+            call_back (callable): call back function that is called with the
                                   downloaded result
             lock (Lock): a threading lock. This lock is used when executing the
                          call back function.

@@ -7,12 +7,6 @@ import time
 import pickle
 
 FILE_BASE = "api_result"
-H5_DATASET_NAME_DATA = "data"
-H5_DATASET_NAME_METADATA = "metadata"
-H5_DATASET_NAMES = (
-    H5_DATASET_NAME_METADATA,
-    H5_DATASET_NAME_DATA,
-)
 
 
 def no_op(*args, **kwargs):
@@ -64,14 +58,27 @@ def save_to_hdf5(result):
     # h5py is only required when using this callback. So we import here.
     try:
         import h5py
+        import pandas as pd
     except ImportError:
         raise ImportError("When the save_to_hdf5 callback is used, make sure"
-                          "h5py is installed.")
+                          "h5py, pandas and numpy are installed.")
+    result.metadata.to_hdf(filename, 'metadata')
 
-    with h5py.File(filename, "w", libver='latest') as h5_file:
-        for i, dataset_data in enumerate(result):
-            dataset = h5_file.create_dataset(
-                H5_DATASET_NAMES[i],
-                dataset_data.shape,
-                dtype=dataset_data.dtype)
-            dataset[...] = dataset_data
+    for i, ds in enumerate(result.data):
+        if ds:
+            dataset_name = 'data_{}'.format(i)
+            if isinstance(ds, pd.DataFrame):
+                ds.to_hdf(filename, dataset_name)
+
+            with h5py.File(filename, "w", libver='latest') as h5_file:
+                if ds.dtype.kind == "O":
+                    print(ds)
+                    dtype = str
+                    ds = ds.astype(dtype)
+                else:
+                    dtype = ds.dtype
+                dataset = h5_file.create_dataset(
+                    dataset_name,
+                    ds.shape,
+                    dtype=dtype)
+                dataset[...] = ds
