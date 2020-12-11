@@ -1,6 +1,15 @@
 lizard-connector
 ================
 
+:warning: **Lizard API version 2 will deprecate on January 31th 2021, please switch to the default API version 3**
+
+This can be done by either omitting the version parameter when creating a Client instance, or creating a Client instance with version 3 specified:
+
+```    
+    from lizard_connector import Client
+    cli = Client(version=3)
+```
+
 Introduction
 ------------
 
@@ -24,7 +33,7 @@ Example usage
 An example jupyter notebook can be found `Example_EN.ipynb` or in Dutch:
 `Voorbeeld_NL.ipynb`.
 
-Use one endpoints https://demo.lizard.net/api/v2 in Python with the Endpoint
+Use one endpoints https://demo.lizard.net/api/v3 in Python with the Endpoint
 class:
 
 ```

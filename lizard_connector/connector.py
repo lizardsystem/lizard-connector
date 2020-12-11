@@ -240,6 +240,11 @@ class Endpoint(Connector):
                 as a data detail endpoint of the form:
                     `../api/{version}/{endpoint}/{uuid}/data`
         """
+
+        # API Deprecation warning
+        # if int(version) == 2:
+        #     print("V2 deprecation warning")
+
         super(Endpoint, self).__init__(**kwargs)
         self.endpoint = endpoint
         base = base.strip(r'/')
@@ -470,6 +475,30 @@ class Client(Connector):
                 each endpoint parse call.
         """
         self.api_version = version
+        # API Deprecation warning
+        if self.api_version == 2:
+            depracationWarning ="""
+\033[91m============================================================\033[0m
+\033[91m============================================================\033[0m
+                                    
+            \33[33mLizard API V2 deprecation warning:\033[0m
+                                    
+API version 2 will deprecate on \33[32mJanuary 31th 2021\033[0m.
+Please switch to the default API version 3.
+
+This can be done by either omitting the version
+parameter when creating a Client instance,
+or creating a Client instance with version 3 specified:
+
+    from lizard_connector import Client
+    cli = Client(version=3)
+
+\033[91m============================================================\033[0m
+\033[91m============================================================\033[0m                                    
+"""
+
+            print(depracationWarning)
+
         if username is not None:
             kwargs.update({
                 "username": username,
