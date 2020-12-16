@@ -3,7 +3,7 @@ from setuptools import setup
 version = '0.7.2'
 
 long_description = '\n\n'.join([
-    open('README.md').read(),
+    open('README.rst').read(),
     open('CREDITS.rst').read(),
     open('CHANGES.rst').read(),
     ])

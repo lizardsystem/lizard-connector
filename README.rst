@@ -34,9 +34,8 @@ An example jupyter notebook can be found `Example_EN.ipynb` or in Dutch:
 `Voorbeeld_NL.ipynb`.
 
 Use one endpoints https://demo.lizard.net/api/v3 in Python with the Endpoint
-class:
+class::
 
-```
     from lizard_connector import Client
     import lizard_connector.queries
     import datetime
@@ -62,13 +61,12 @@ class:
     ]
 
     results = client.timeseries.get(*relevant_queries)
-```
+
 
 Usage with PyQT (for Qgis plugins)
 ----------------------------------
-You can create a QThread worker like so:
+You can create a QThread worker like so::
 
-```
     from PyQt4.QtCore import QThread
     from PyQt4.QtCore import pyqtSignal
 
@@ -92,4 +90,3 @@ You can create a QThread worker like so:
             data = self._endpoint._synchronous_get_async(
                 *self._querydicts, **self._queries)
             self.output.emit(data)
-```
