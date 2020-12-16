@@ -5,10 +5,10 @@ lizard-connector
 
 This can be done by either omitting the version parameter when creating a Client instance, or creating a Client instance with version 3 specified:
 
-```    
+..
     from lizard_connector import Client
     cli = Client(version=3)
-```
+
 
 Introduction
 ------------
@@ -20,8 +20,7 @@ Includes:
 - Endpoint (Easy access to Lizard api endpoints)
 - Connector (http handling)
 - parsers to parse the json obtained from Endpoint queries
-- queryfunctions for special cases such as geographical queries and time
-  related queries other queries can be input as a dictionary
+- queryfunctions for special cases such as geographical queries and time related queries other queries can be input as a dictionary
 - callbacks for async data handling.
 
 When pandas, numpy are installed the Client returns `pandas.DataFrame`s and/or
