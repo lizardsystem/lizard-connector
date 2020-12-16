@@ -7,6 +7,8 @@ Changelog of lizard-connector
 
 - Added FutureWarnings when using the v2 API (default is V3)
 
+- (re)Added README.md to MANIFEST.in
+
 
 0.7.1 (2018-04-17)
 ------------------
