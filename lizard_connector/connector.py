@@ -17,6 +17,7 @@ import json
 import getpass
 import time
 import sys
+import warnings
 from threading import Thread, RLock
 
 import lizard_connector.queries
@@ -240,6 +241,11 @@ class Endpoint(Connector):
                 as a data detail endpoint of the form:
                     `../api/{version}/{endpoint}/{uuid}/data`
         """
+
+        # API Deprecation warning
+        if version == 2:
+            warnings.warn("Lizard Connector endpoint: API version 2 will deprecate on \33[32mJanuary 31th 2021\033[0m. Please switch to the default API version 3.", FutureWarning)
+
         super(Endpoint, self).__init__(**kwargs)
         self.endpoint = endpoint
         base = base.strip(r'/')
@@ -470,6 +476,10 @@ class Client(Connector):
                 each endpoint parse call.
         """
         self.api_version = version
+        # API Deprecation warning
+        if self.api_version == 2:
+            warnings.warn("Lizard Connector: API version 2 will deprecate on \33[32mJanuary 31th 2021\033[0m. Please switch to the default API version 3.", FutureWarning, stacklevel=2)
+
         if username is not None:
             kwargs.update({
                 "username": username,

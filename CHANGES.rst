@@ -5,7 +5,7 @@ Changelog of lizard-connector
 0.7.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Added FutureWarnings when using the v2 API (default is V3)
 
 
 0.7.1 (2018-04-17)
