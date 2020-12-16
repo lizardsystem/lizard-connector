@@ -2,10 +2,12 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.7.2 (unreleased)
+0.7.2 (2020-12-16)
 ------------------
 
 - Added FutureWarnings when using the v2 API (default is V3)
+
+- (re)Added README.md to MANIFEST.in
 
 
 0.7.1 (2018-04-17)
