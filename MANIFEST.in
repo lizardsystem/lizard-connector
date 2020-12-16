@@ -1,6 +1,5 @@
 # Include docs in the root.
 include *.rst
-include README.md
 # Include everything in our project directory.
 graft lizard_connector
 # Exclude tests
