@@ -7,7 +7,7 @@ Changelog of lizard-connector
 
 - Added FutureWarnings when using the v2 API (default is V3)
 
-- (re)Added README.md to MANIFEST.in
+- Renamed REAMDE.md to README.rst
 
 
 0.7.1 (2018-04-17)
