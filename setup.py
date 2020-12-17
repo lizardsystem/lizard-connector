@@ -20,8 +20,7 @@ tests_require = [
 
 setup(name='lizard-connector',
       version=version,
-      description="A connector to connect to the Lizard-API "
-                  "(https://demo.lizard.net/api/v2/) with Python.",
+      description="A connector to connect to the Lizard-API with Python.",
       long_description=long_description,
       # Get strings from http://www.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[

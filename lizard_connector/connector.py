@@ -1,6 +1,6 @@
 # coding=utf-8
 """
-Connector to Lizard api (e.g. https://demo.lizard.net/api/v2) for python.
+Connector to Lizard api for python.
 
 Includes:
 - A Lizard Client that allows querying an API of one of the Lizard portals.
@@ -117,7 +117,7 @@ class Connector(object):
 
         Args:
             url (str): full query url: should be of the form:
-                       [base_url]/api/v2/[endpoint]/?[query_key]=[query_value]&
+                       [base_url]/api/v3/[endpoint]/?[query_key]=[query_value]&
                            ...
             data (dict): data in a list or dictionary format.
 
