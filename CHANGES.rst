@@ -2,8 +2,8 @@ Changelog of lizard-connector
 ===================================================
 
 
-0.8 (unreleased)
-----------------
+0.7.3 (2020-12-17)
+------------------
 
 - Removed mentions of v2 API from docs.
 
